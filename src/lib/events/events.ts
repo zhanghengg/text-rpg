@@ -100,6 +100,29 @@ const EVENT_POOL: EventTpl[] = [
       },
     ],
   },
+  {
+    id: 'ev_auto_202602271145',
+    titleEn: 'A Note Written in Ash',
+    titleZh: '灰烬写下的便签',
+    bodyEn: 'Someone left a message on stone. The fog tries to erase it as you read.',
+    bodyZh: '有人在石头上留了字。你阅读时，迷雾试图把它擦掉。',
+    options: [
+      {
+        id: 'pocket',
+        labelEn: 'Pocket the charcoal',
+        labelZh: '收走木炭',
+        outcomeEn: { text: 'You keep the charcoal. It still feels warm. +6g', goldDelta: 6 },
+        outcomeZh: { text: '你把木炭收起来，它仍带余温。+6金币', goldDelta: 6 },
+      },
+      {
+        id: 'burn',
+        labelEn: 'Burn the note',
+        labelZh: '烧掉便签',
+        outcomeEn: { text: 'The smoke curls like a warning. Fog -1', fogDelta: -1 },
+        outcomeZh: { text: '烟雾盘旋，像警告。雾值-1', fogDelta: -1 },
+      },
+    ],
+  },
 ];
 
 export function rollEvent(seed: number, lang: Lang): WorldEvent {

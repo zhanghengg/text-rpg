@@ -35,7 +35,7 @@ let events = read(eventsPath);
 const stamp = nowISO();
 const id = `ev_auto_${stamp.replace(/[:T-]/g, '').slice(0, 12)}`;
 
-const insertion = `,
+const insertion = `
   {
     id: '${id}',
     titleEn: 'A Note Written in Ash',
