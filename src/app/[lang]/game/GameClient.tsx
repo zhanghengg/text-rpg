@@ -58,9 +58,10 @@ export function GameClient(props: { lang: Lang }) {
 
   function onNew() {
     const name = window.prompt(t.prompts.name, lang === 'zh' ? '冒险者' : 'Adventurer') ?? 'Adventurer';
-    const job = (window.prompt(t.prompts.pickJob, 'guard') ?? 'guard') as Player['job'];
+    const job = (window.prompt(`${t.prompts.pickJob}\n${t.prompts.pickJobHelp}`, 'guard') ?? 'guard') as Player['job'];
 
-    const p = newGame(name, job);
+    const p0 = newGame(name, job);
+    const p = { ...p0, lang };
     setBattle(null);
     setPlayer(p);
     setScreen('camp');
@@ -287,7 +288,7 @@ function GearView(props: {
                   <div className="tag">{t.gear.rarity[it.rarity]}</div>
                 </div>
                 <div className="muted small">
-                  {it.slot} · req Lv.{it.levelReq} · +
+                  {it.slot} · {t.gear.levelReq}{it.levelReq} · {t.gear.statsPrefix}
                   {Object.entries(it.stats)
                     .map(([k, v]) => `${k}:${v}`)
                     .join('  ')}

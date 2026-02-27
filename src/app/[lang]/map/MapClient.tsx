@@ -144,7 +144,7 @@ export function MapClient(props: { lang: Lang }) {
     }
 
     if (node.type === 'treasure') {
-      const drop = rollDrop(player.world.seed + next.world.fog * 97, player.level, player.job);
+      const drop = rollDrop(player.world.seed + next.world.fog * 97, player.level, player.job, lang);
       const next2 = {
         ...next,
         inventory: [drop, ...next.inventory],

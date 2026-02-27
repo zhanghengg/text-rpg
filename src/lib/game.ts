@@ -1,6 +1,7 @@
 import type { BattleLogEntry, BattleState, Enemy, Item, Player } from './types';
 
 import { ENEMIES, STARTER_ITEMS } from './content';
+import { getBattleText } from './i18n/battle';
 import { rollDrop } from './loot/loot';
 import { mulberry32, pickOne, rngInt } from './rng';
 import { baseStatsForJob, calcDerived, expToNext } from './rules';
@@ -12,6 +13,7 @@ export function newGame(name: string, job: Player['job']): Player {
 
   return {
     name: name.trim() || 'Adventurer',
+    lang: 'en',
     job,
     level: 1,
     exp: 0,
@@ -65,8 +67,10 @@ export function startBattle(seed: number, p: Player): BattleState {
     def: Math.floor(base.def * (1 + (level - 1) * 0.15)),
   };
 
+  const bt = getBattleText(p.lang === 'zh' ? 'zh' : 'en');
+
   const log: BattleLogEntry[] = [
-    { t: Date.now(), side: 'system', text: `A wild ${enemy.name} (Lv.${enemy.level}) emerges from the fog.` },
+    { t: Date.now(), side: 'system', text: bt.encounter(enemy.name, enemy.level) },
   ];
 
   return {
@@ -104,6 +108,8 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
   const r = mulberry32(b.seed + b.turn * 999);
   const log = [...b.log];
 
+  const bt = getBattleText(p.lang === 'zh' ? 'zh' : 'en');
+
   const pHit = p.derived.hit;
   const pCrit = p.derived.crit;
 
@@ -114,19 +120,19 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
 
   if (action === 'defend') {
     defend = true;
-    log.push({ t: Date.now(), side: 'player', text: `${p.name} braces for impact.` });
+    log.push({ t: Date.now(), side: 'player', text: bt.brace(p.name) });
   } else if (action === 'escape') {
     const ok = r() < 0.45;
     if (ok) {
-      log.push({ t: Date.now(), side: 'system', text: `${p.name} slips away into the mist.` });
+      log.push({ t: Date.now(), side: 'system', text: bt.escapeOk(p.name) });
       const battle: BattleState = { ...b, log, status: 'escaped', playerHp, enemyHp, turn: b.turn + 1 };
       return { player: { ...p, hp: playerHp }, battle };
     }
-    log.push({ t: Date.now(), side: 'system', text: `Escape failed.` });
+    log.push({ t: Date.now(), side: 'system', text: bt.escapeFail() });
   } else {
     const hit = hitRoll(r, pHit, 0);
     if (!hit) {
-      log.push({ t: Date.now(), side: 'player', text: `${p.name} attacks but misses.` });
+      log.push({ t: Date.now(), side: 'player', text: bt.miss(p.name) });
     } else {
       const crit = critRoll(r, pCrit);
       const dmg = damage(p.derived.atk, b.enemy.def);
@@ -135,7 +141,7 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
       log.push({
         t: Date.now(),
         side: 'player',
-        text: `${p.name} hits ${b.enemy.name} for ${dealt}${crit ? ' (CRIT)' : ''}.`,
+        text: bt.hit(p.name, b.enemy.name, dealt, crit),
       });
     }
   }
@@ -145,12 +151,12 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
     const gold = 6 + b.enemy.level * 4;
 
     const dropSeed = b.seed + 17;
-    const drop = rollDrop(dropSeed, p.level, p.job);
+    const drop = rollDrop(dropSeed, p.level, p.job, p.lang === 'zh' ? 'zh' : 'en');
 
     log.push({
       t: Date.now(),
       side: 'system',
-      text: `${b.enemy.name} is defeated. +${exp} EXP, +${gold}g. Found: ${drop.name}.`,
+      text: bt.defeated(b.enemy.name, exp, gold, drop.name),
     });
 
     let next: Player = {
@@ -187,7 +193,7 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
 
   const enemyHit = hitRoll(r, 78 + b.enemy.level * 2, p.derived.dodge);
   if (!enemyHit) {
-    log.push({ t: Date.now(), side: 'enemy', text: `${b.enemy.name} snaps, but misses.` });
+    log.push({ t: Date.now(), side: 'enemy', text: bt.enemyMiss(b.enemy.name) });
   } else {
     const dmg = damage(b.enemy.atk, p.derived.def);
     const reduced = defend ? Math.floor(dmg * 0.55) : dmg;
@@ -195,7 +201,7 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
     log.push({
       t: Date.now(),
       side: 'enemy',
-      text: `${b.enemy.name} hits for ${reduced}${defend ? ' (guarded)' : ''}.`,
+      text: bt.enemyHit(b.enemy.name, reduced, defend),
     });
   }
 
@@ -203,7 +209,7 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
     log.push({
       t: Date.now(),
       side: 'system',
-      text: `${p.name} falls. The fog takes what it is owed.`,
+      text: bt.playerDown(p.name),
     });
 
     const battle: BattleState = {
@@ -230,6 +236,7 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
 }
 
 function levelUpIfNeeded(p: Player, log: BattleLogEntry[]) {
+  const bt = getBattleText(p.lang === 'zh' ? 'zh' : 'en');
   let cur = { ...p };
 
   while (cur.exp >= cur.expToNext) {
@@ -241,7 +248,7 @@ function levelUpIfNeeded(p: Player, log: BattleLogEntry[]) {
       vit: cur.stats.vit + 1,
     };
 
-    log.push({ t: Date.now(), side: 'system', text: `Level up! You are now Lv.${cur.level}. (+1 VIT)` });
+    log.push({ t: Date.now(), side: 'system', text: bt.levelUp(cur.level) });
 
     cur.expToNext = expToNext(cur.level);
     cur = recalcPlayer(cur);

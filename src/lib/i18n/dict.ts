@@ -61,6 +61,8 @@ export type Dict = {
     inventory: string;
     equip: string;
     unequip: string;
+    levelReq: string;
+    statsPrefix: string;
     next: string;
     rarity: {
       common: string;
@@ -82,6 +84,7 @@ export type Dict = {
   prompts: {
     name: string;
     pickJob: string;
+    pickJobHelp: string;
     deleteSave: string;
   };
 };
@@ -147,6 +150,8 @@ const en: Dict = {
     inventory: 'Inventory',
     equip: 'Equip',
     unequip: 'Unequip',
+    levelReq: 'req Lv.',
+    statsPrefix: '+',
     next: '(Next: sell, compare, crafting, random affixes.)',
     rarity: {
       common: 'common',
@@ -167,7 +172,8 @@ const en: Dict = {
 
   prompts: {
     name: 'Name your adventurer:',
-    pickJob: 'Pick a job: guard / ranger / warlock / cleric / rogue / scholar',
+    pickJob: 'Pick a job id:',
+    pickJobHelp: 'guard / ranger / warlock / cleric / rogue / scholar',
     deleteSave: 'Delete local save?',
   },
 };
@@ -233,6 +239,8 @@ const zh: Dict = {
     inventory: '背包',
     equip: '装备',
     unequip: '卸下',
+    levelReq: '需求等级 Lv.',
+    statsPrefix: '属性：',
     next: '（下一步：出售、对比、锻造、随机词条。）',
     rarity: {
       common: '普通',
@@ -253,7 +261,8 @@ const zh: Dict = {
 
   prompts: {
     name: '给你的冒险者起个名字：',
-    pickJob: '选择职业：guard / ranger / warlock / cleric / rogue / scholar',
+    pickJob: '选择职业ID：',
+    pickJobHelp: 'guard 战士 / ranger 游侠 / warlock 术士 / cleric 牧师 / rogue 盗贼 / scholar 学者',
     deleteSave: '确定删除本地存档？',
   },
 };

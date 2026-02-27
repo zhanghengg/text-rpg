@@ -33,6 +33,7 @@ export type Derived = Record<DerivedKey, number>;
 
 export type Player = {
   name: string;
+  lang?: 'en' | 'zh';
   job: JobId;
   level: number;
   exp: number;
