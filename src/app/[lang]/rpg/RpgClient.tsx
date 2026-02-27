@@ -79,11 +79,24 @@ export function RpgClient(props: { lang: Lang }) {
           <button className="btn" onClick={() => dispatch({ type: 'CAMP_REST' })}>
             休息
           </button>
+          <button className="btn" onClick={() => dispatch({ type: 'CAMP_OPEN_SHOP' })}>
+            商店
+          </button>
           <button className="btn" onClick={() => dispatch({ type: 'CAMP_START_EXPLORE', mapId: 'slime_plains' })}>
             出城探索（史莱姆平原）
           </button>
           <button className="btn" onClick={() => dispatch({ type: 'CAMP_START_EXPLORE', mapId: 'dark_forest' })}>
             出城探索（幽暗森林）
+          </button>
+        </>
+      );
+    }
+
+    if (save.mode === 'SHOP') {
+      return (
+        <>
+          <button className="btn" onClick={() => dispatch({ type: 'SHOP_LEAVE' })}>
+            返回营地
           </button>
         </>
       );
@@ -164,8 +177,32 @@ export function RpgClient(props: { lang: Lang }) {
                 <div className="muted">{it.qty ? `x${it.qty}` : ''}</div>
               </div>
               <div className="muted small">{it.kind}</div>
+              {save.mode === 'SHOP' ? (
+                <button className="mini" onClick={() => dispatch({ type: 'SHOP_SELL', itemId: it.id })}>
+                  出售
+                </button>
+              ) : null}
             </div>
           ))}
+
+          {save.mode === 'SHOP' ? (
+            <>
+              <div className="hr" />
+              <div className="h">商店货架</div>
+              <div className="muted small">买药水；也可以把背包物品卖掉换金币。</div>
+              <div className="shop">
+                <button className="shopItem" onClick={() => dispatch({ type: 'SHOP_BUY', itemId: 'potion_small' })}>
+                  小型血瓶 (18g)
+                </button>
+                <button className="shopItem" onClick={() => dispatch({ type: 'SHOP_BUY', itemId: 'potion_mana' })}>
+                  小型蓝瓶 (18g)
+                </button>
+                <button className="shopItem" onClick={() => dispatch({ type: 'SHOP_BUY', itemId: 'potion_big' })}>
+                  中型血瓶 (45g)
+                </button>
+              </div>
+            </>
+          ) : null}
 
           <div className="hr" />
 
@@ -260,6 +297,29 @@ const css = String.raw`
     background: rgba(0,0,0,0.18);
     padding: 10px;
     margin-bottom: 10px;
+  }
+
+  .mini {
+    margin-top: 8px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.22);
+    color: rgba(255,255,255,0.86);
+    border-radius: 999px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .shop { display: grid; gap: 10px; margin-top: 10px; }
+
+  .shopItem {
+    text-align: left;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.20);
+    padding: 10px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.88);
   }
 
   .row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }

@@ -1,4 +1,4 @@
-export type GameMode = 'CAMP' | 'EXPLORING' | 'COMBAT';
+export type GameMode = 'CAMP' | 'EXPLORING' | 'COMBAT' | 'SHOP';
 
 export type XY = { x: number; y: number };
 
@@ -13,6 +13,7 @@ export type RpgItem = {
   name: string;
   kind: 'potion' | 'gear';
   qty?: number;
+  price?: number;
 };
 
 export type CombatEnemy = {
@@ -64,6 +65,10 @@ export type Action =
   | { type: 'NEW_GAME'; name: string; jobId: RpgSave['jobId']; seed: number }
   | { type: 'SET_MODE'; mode: GameMode }
   | { type: 'CAMP_REST' }
+  | { type: 'CAMP_OPEN_SHOP' }
+  | { type: 'SHOP_BUY'; itemId: string }
+  | { type: 'SHOP_SELL'; itemId: string }
+  | { type: 'SHOP_LEAVE' }
   | { type: 'CAMP_START_EXPLORE'; mapId: string }
   | { type: 'MOVE'; dir: 'N' | 'S' | 'W' | 'E' }
   | { type: 'COMBAT_ATTACK' }

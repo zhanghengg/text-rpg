@@ -2,6 +2,7 @@ import type { Action, LogEntry, RpgSave } from './state';
 
 import { chance, mulberry32, rngInt } from './rng';
 import { expToNext, makeEnemy, recalcVitals } from './rules';
+import { SHOP_STOCK, sellPrice } from './shop';
 
 function logId(t: number) {
   return `${t}_${Math.random().toString(16).slice(2)}`;
@@ -136,6 +137,61 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
     }
     save = recalcVitals({ ...save, gold: save.gold - cost, hp: save.hpMax, mp: save.mpMax });
     logs = pushLog(logs, `你休息了一会儿（-${cost}金币），HP/MP已恢复。`);
+    return { save, logs };
+  }
+
+  if (action.type === 'CAMP_OPEN_SHOP') {
+    if (save.mode !== 'CAMP') return rt;
+    save = { ...save, mode: 'SHOP' };
+    logs = pushLog(logs, '你走进营地商店。老板抬头看了你一眼。');
+    return { save, logs };
+  }
+
+  if (action.type === 'SHOP_BUY') {
+    if (save.mode !== 'SHOP') return rt;
+    const stock = SHOP_STOCK.find((x) => x.id === action.itemId);
+    if (!stock || !stock.price) return rt;
+
+    if (save.gold < stock.price) {
+      return { save, logs: pushLog(logs, '金币不足。') };
+    }
+
+    // Add one item (stack potions).
+    const inv = [...save.inventory];
+    const ex = inv.find((x) => x.id === stock.id);
+    if (ex) ex.qty = (ex.qty ?? 1) + 1;
+    else inv.push({ ...stock, qty: 1 });
+
+    save = { ...save, gold: save.gold - stock.price, inventory: inv };
+    logs = pushLog(logs, `购买：${stock.name}（-${stock.price}金币）。`);
+    return { save, logs };
+  }
+
+  if (action.type === 'SHOP_SELL') {
+    if (save.mode !== 'SHOP') return rt;
+    const inv = [...save.inventory];
+    const idx = inv.findIndex((x) => x.id === action.itemId);
+    if (idx < 0) return rt;
+
+    const it = { ...inv[idx] };
+    const price = sellPrice(it);
+
+    if (it.qty && it.qty > 1) {
+      it.qty -= 1;
+      inv[idx] = it;
+    } else {
+      inv.splice(idx, 1);
+    }
+
+    save = { ...save, gold: save.gold + price, inventory: inv };
+    logs = pushLog(logs, `出售：${it.name}（+${price}金币）。`);
+    return { save, logs };
+  }
+
+  if (action.type === 'SHOP_LEAVE') {
+    if (save.mode !== 'SHOP') return rt;
+    save = { ...save, mode: 'CAMP' };
+    logs = pushLog(logs, '你离开商店，回到营地。');
     return { save, logs };
   }
 
