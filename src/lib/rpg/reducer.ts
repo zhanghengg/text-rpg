@@ -1,10 +1,13 @@
-import type { Action, LogEntry, RpgSave } from './state';
+import type { Action, LogEntry, RpgItem, RpgSave } from './state';
 
 import { inBounds, poiAt, regionOf } from './regions';
 
 import { chance, mulberry32, rngInt } from './rng';
-import { expToNext, makeEnemy, recalcVitals } from './rules';
+import { rollGear } from './gear';
+import { applyDotToPlayer, expToNext, makeEnemy, pushOrRefreshStatus, recalcVitals } from './rules';
 import { SHOP_STOCK, sellPrice } from './shop';
+
+import { computePlayerStats, enemyAttackDamage, playerAttackDamage } from './combat';
 
 function logId(t: number) {
   return `${t}_${Math.random().toString(16).slice(2)}`;
@@ -23,7 +26,7 @@ export type RpgRuntime = {
 export function initialRuntime(): RpgRuntime {
   const seed = Math.floor(Date.now() / 1000);
   const save: RpgSave = {
-    version: 1,
+    version: 2,
     name: '冒险者',
     jobId: 'guard',
     level: 1,
@@ -42,6 +45,8 @@ export function initialRuntime(): RpgRuntime {
     mapId: null,
     pos: { x: 0, y: 0 },
     inventory: [{ id: 'potion_small', name: '小型血瓶', kind: 'potion', qty: 2 }],
+    equipment: {},
+    statuses: [],
     seed,
   };
 
@@ -50,6 +55,7 @@ export function initialRuntime(): RpgRuntime {
     logs: [
       { id: 'init', t: Date.now(), text: '你回到了营地。火堆噼啪作响，迷雾在远处翻涌。' },
       { id: 'hint', t: Date.now(), text: '提示：从营地出发探索，移动会触发遭遇、物资或事件。' },
+      { id: 'hint2', t: Date.now(), text: '提示：击败怪物有概率掉落装备（武器/护甲/饰品），在背包里可穿戴。' },
     ],
   };
 }
@@ -71,7 +77,7 @@ function levelUpIfNeeded(rt: RpgRuntime): RpgRuntime {
 
 function enterCombat(rt: RpgRuntime, reason: string): RpgRuntime {
   const { save } = rt;
-  const enemy = makeEnemy(save.mapId ?? 'wilds', save.seed + save.pos.x * 31 + save.pos.y * 97, save.level);
+  const enemy = makeEnemy(save.mapId ?? 'breeze_plains', save.seed + save.pos.x * 31 + save.pos.y * 97, save.level);
 
   return {
     save: {
@@ -89,7 +95,7 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
   if (action.type === 'NEW_GAME') {
     const seed = action.seed;
     const base: RpgSave = {
-      version: 1,
+      version: 2,
       name: action.name.trim() || '冒险者',
       jobId: action.jobId,
       level: 1,
@@ -108,6 +114,8 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
       mapId: null,
       pos: { x: 0, y: 0 },
       inventory: [{ id: 'potion_small', name: '小型血瓶', kind: 'potion', qty: 2 }],
+      equipment: {},
+      statuses: [],
       seed,
     };
 
@@ -157,8 +165,8 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
     // Add one item (stack potions).
     const inv = [...save.inventory];
     const ex = inv.find((x) => x.id === stock.id);
-    if (ex) ex.qty = (ex.qty ?? 1) + 1;
-    else inv.push({ ...stock, qty: 1 });
+    if (ex && ex.kind === 'potion') ex.qty = (ex.qty ?? 1) + 1;
+    else inv.push({ ...stock, kind: 'potion', qty: 1 });
 
     save = { ...save, gold: save.gold - stock.price, inventory: inv };
     logs = pushLog(logs, `购买：${stock.name}（-${stock.price}金币）。`);
@@ -174,7 +182,7 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
     const it = { ...inv[idx] };
     const price = sellPrice(it);
 
-    if (it.qty && it.qty > 1) {
+    if (it.kind === 'potion' && it.qty && it.qty > 1) {
       it.qty -= 1;
       inv[idx] = it;
     } else {
@@ -225,7 +233,7 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
       const key = `poi_${save.mapId}_campfire_used`;
       const used = save.inventory.some((x) => x.id === key);
       if (!used) {
-        save = recalcVitals({ ...save, hp: save.hpMax, mp: save.mpMax, inventory: [...save.inventory, { id: key, name: '营火记忆', kind: 'gear' }] });
+        save = recalcVitals({ ...save, hp: save.hpMax, mp: save.mpMax, inventory: [...save.inventory, { id: key, name: '营火记忆', kind: 'flag' }] });
         logs = pushLog(logs, '你在营火旁坐下，免费恢复一次 HP/MP。');
       } else {
         logs = pushLog(logs, '营火已经熄灭，只剩余温。');
@@ -251,7 +259,7 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
       const used = save.inventory.some((x) => x.id === key);
       if (!used) {
         const g = rngInt(mulberry32(save.seed + next.x * 31 + next.y * 97), 12, 22);
-        save = { ...save, gold: save.gold + g, inventory: [...save.inventory, { id: key, name: '铁砧印记', kind: 'gear' }] };
+        save = { ...save, gold: save.gold + g, inventory: [...save.inventory, { id: key, name: '铁砧印记', kind: 'flag' }] };
         logs = pushLog(logs, `熔岩铁砧的火光映照你的武器。你临时强化并找到战利品：+${g}金币（升级系统待实现，仅可触发一次）。`);
       } else {
         logs = pushLog(logs, '熔岩铁砧已经冷却。');
@@ -298,24 +306,130 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
 
   if (action.type === 'COMBAT_ATTACK') {
     if (save.mode !== 'COMBAT' || !save.combat) return rt;
+    const combat = save.combat;
 
-    const enemy = { ...save.combat.enemy };
-    const pAtk = 6 + save.str * 2 + save.level;
-    const dmg = Math.max(1, pAtk - enemy.def);
+    // Start of player turn: status DOTs tick.
+    {
+      const dot = applyDotToPlayer(save, []);
+      if (dot.logs.length) logs = [...logs, ...dot.logs.map((t) => ({ id: logId(Date.now()), t: Date.now(), text: t }))];
+      save = dot.save;
+      if (save.hp <= 0) {
+        save = recalcVitals({ ...save, mode: 'CAMP', mapId: null, pos: { x: 0, y: 0 }, combat: undefined, gold: Math.max(0, save.gold - 15) });
+        logs = pushLog(logs, '你在毒素中倒下，被人拖回营地。你损失了一些金币。');
+        return { save, logs };
+      }
+    }
+
+    const enemy = { ...combat.enemy };
+
+    // Player attack.
+    const ps = computePlayerStats(save);
+    const dmg = playerAttackDamage(save, enemy);
     enemy.hp = Math.max(0, enemy.hp - dmg);
-    logs = pushLog(logs, `你攻击 ${enemy.name}，造成 ${dmg} 点伤害。`);
+
+    // Lifesteal on player hit.
+    if (ps.lifestealPct > 0) {
+      const heal = Math.max(0, Math.floor((dmg * ps.lifestealPct) / 100));
+      if (heal > 0) save = { ...save, hp: Math.min(save.hpMax, save.hp + heal) };
+      logs = pushLog(logs, `你攻击 ${enemy.name}，造成 ${dmg} 点伤害（吸血 +${Math.max(0, Math.floor((dmg * ps.lifestealPct) / 100))}）。`);
+    } else {
+      logs = pushLog(logs, `你攻击 ${enemy.name}，造成 ${dmg} 点伤害。`);
+    }
 
     if (enemy.hp <= 0) {
-      const exp = 12 + enemy.level * 6;
-      const gold = 6 + enemy.level * 4;
-      save = { ...save, mode: 'EXPLORING', combat: undefined, exp: save.exp + exp, gold: save.gold + gold };
+      const exp = 12 + enemy.level * 6 + (enemy.tier === 'elite' ? 12 : enemy.tier === 'boss' ? 35 : 0);
+      const gold = 6 + enemy.level * 4 + (enemy.tier === 'elite' ? 10 : enemy.tier === 'boss' ? 25 : 0);
+
+      // Dark-ish gear drop.
+      const r = mulberry32(save.seed + enemy.level * 777 + save.pos.x * 31 + save.pos.y * 97);
+      const dropRoll = r();
+      const drops: RpgItem[] = [];
+      if (dropRoll < (enemy.tier === 'boss' ? 0.95 : enemy.tier === 'elite' ? 0.55 : 0.25)) {
+        const slot = dropRoll < 0.33 ? 'weapon' : dropRoll < 0.66 ? 'armor' : 'accessory';
+        const gear = rollGear(save.seed + enemy.level * 999 + save.pos.x * 31 + save.pos.y * 97, slot, save.level, enemy.element);
+        drops.push(gear);
+      }
+
+      save = {
+        ...save,
+        mode: 'EXPLORING',
+        combat: undefined,
+        exp: save.exp + exp,
+        gold: save.gold + gold,
+        statuses: [],
+        inventory: [...save.inventory, ...drops],
+      };
       logs = pushLog(logs, `${enemy.name} 被击败！+${exp} 经验，+${gold} 金币。`);
+      for (const d of drops) logs = pushLog(logs, `掉落：${d.name}。`);
       return levelUpIfNeeded({ save, logs });
     }
 
-    const eDmg = Math.max(1, enemy.atk - Math.floor(save.con * 0.6));
-    save = { ...save, hp: Math.max(0, save.hp - eDmg), combat: { enemy, turn: save.combat.turn + 1 } };
-    logs = pushLog(logs, `${enemy.name} 反击，造成 ${eDmg} 点伤害。`);
+    // Enemy turn.
+
+    // Intent/windup: goblin brute heavy strike.
+    if (enemy.intent?.id === 'goblin_heavy_strike') {
+      const turnsLeft = enemy.intent.turnsLeft - 1;
+      if (turnsLeft > 0) {
+        enemy.intent = { id: 'goblin_heavy_strike', turnsLeft };
+        logs = pushLog(logs, `${enemy.name} 正在蓄力重击……`);
+      } else {
+        enemy.intent = null;
+        const base = enemyAttackDamage(save, enemy);
+        const heavy = Math.max(1, Math.floor(base * 1.8));
+        save = { ...save, hp: Math.max(0, save.hp - heavy) };
+        logs = pushLog(logs, `${enemy.name} 释放重击！你失去 ${heavy} HP。`);
+      }
+    } else {
+      // Passive enemy skills.
+      if (enemy.archetypeId === 'goblin_brute') {
+        // Start windup.
+        enemy.intent = { id: 'goblin_heavy_strike', turnsLeft: 1 };
+        logs = pushLog(logs, `${enemy.name} 抬起巨棒，开始蓄力……`);
+      } else {
+        const eDmg = enemyAttackDamage(save, enemy);
+        save = { ...save, hp: Math.max(0, save.hp - eDmg) };
+        logs = pushLog(logs, `${enemy.name} 攻击，造成 ${eDmg} 点伤害。`);
+
+        // Bat lifesteal.
+        if (enemy.archetypeId === 'bat' || enemy.archetypeId === 'cave_bat') {
+          const heal = Math.max(0, Math.floor(eDmg * 0.35));
+          if (heal > 0) {
+            enemy.hp = Math.min(enemy.hpMax, enemy.hp + heal);
+            logs = pushLog(logs, `${enemy.name} 吸血，恢复 ${heal} HP。`);
+          }
+        }
+
+        // Spider poison.
+        if (enemy.archetypeId === 'forest_spider' || enemy.archetypeId === 'spider_queen') {
+          save = { ...save, statuses: pushOrRefreshStatus(save.statuses, { id: 'poison', turns: enemy.archetypeId === 'spider_queen' ? 4 : 3, pctMaxHpPerTurn: 0.05 }) };
+          logs = pushLog(logs, '毒牙刺入皮肤：你中毒了（每回合扣最大HP 5%）。');
+        }
+
+        // Slime split: heal itself a bit (represents splitting).
+        if (enemy.archetypeId === 'slime_splitter' || enemy.archetypeId === 'slime_king') {
+          const heal = Math.max(1, Math.floor(enemy.hpMax * 0.06));
+          enemy.hp = Math.min(enemy.hpMax, enemy.hp + heal);
+          logs = pushLog(logs, `${enemy.name} 分裂再聚合，恢复 ${heal} HP。`);
+        }
+      }
+    }
+
+    save = { ...save, combat: { enemy, turn: combat.turn + 1 } };
+
+    // Thorns retaliation.
+    const ps2 = computePlayerStats(save);
+    if (ps2.thorns > 0) {
+      enemy.hp = Math.max(0, enemy.hp - ps2.thorns);
+      logs = pushLog(logs, `你的荆棘反伤：${enemy.name} 受到 ${ps2.thorns} 伤害。`);
+      save = { ...save, combat: { enemy, turn: combat.turn } };
+      if (enemy.hp <= 0) {
+        const exp = 12 + enemy.level * 6;
+        const gold = 6 + enemy.level * 4;
+        save = { ...save, mode: 'EXPLORING', combat: undefined, exp: save.exp + exp, gold: save.gold + gold, statuses: [] };
+        logs = pushLog(logs, `${enemy.name} 被反伤击败！+${exp} 经验，+${gold} 金币。`);
+        return levelUpIfNeeded({ save, logs });
+      }
+    }
 
     if (save.hp <= 0) {
       save = recalcVitals({ ...save, mode: 'CAMP', mapId: null, pos: { x: 0, y: 0 }, gold: Math.max(0, save.gold - 15) });
@@ -329,7 +443,8 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
   if (action.type === 'COMBAT_ESCAPE') {
     if (save.mode !== 'COMBAT' || !save.combat) return rt;
 
-    const r = mulberry32(save.seed + save.combat.turn * 999);
+    const combat = save.combat;
+    const r = mulberry32(save.seed + combat.turn * 999);
     const ok = r() < 0.45;
     if (ok) {
       save = { ...save, mode: 'EXPLORING', combat: undefined };
@@ -338,9 +453,9 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
     }
 
     logs = pushLog(logs, '你试图逃跑，但失败了！');
-    const enemy = { ...save.combat.enemy };
-    const eDmg = Math.max(1, enemy.atk - Math.floor(save.con * 0.6));
-    save = { ...save, hp: Math.max(0, save.hp - eDmg), combat: { enemy, turn: save.combat.turn + 1 } };
+    const enemy = { ...combat.enemy };
+    const eDmg = enemyAttackDamage(save, enemy);
+    save = { ...save, hp: Math.max(0, save.hp - eDmg), combat: { enemy, turn: combat.turn + 1 } };
     logs = pushLog(logs, `${enemy.name} 追击，造成 ${eDmg} 点伤害。`);
 
     if (save.hp <= 0) {
@@ -351,9 +466,39 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
     return { save, logs };
   }
 
+  if (action.type === 'EQUIP_GEAR') {
+    const idx = save.inventory.findIndex((x) => x.id === action.itemId);
+    if (idx < 0) return rt;
+    const it = save.inventory[idx];
+    if (!isGear(it)) return { save, logs: pushLog(logs, '这不是装备，无法穿戴。') };
+
+    const nextInv = [...save.inventory];
+    nextInv.splice(idx, 1);
+
+    const prev = save.equipment[it.slot];
+    if (prev) nextInv.push(prev);
+
+    save = recalcVitals({ ...save, inventory: nextInv, equipment: { ...save.equipment, [it.slot]: it } });
+    logs = pushLog(logs, `你穿戴了：${it.name}。`);
+    if (prev) logs = pushLog(logs, `卸下：${prev.name}。`);
+    return { save, logs };
+  }
+
+  if (action.type === 'UNEQUIP_GEAR') {
+    const prev = save.equipment[action.slot];
+    if (!prev) return rt;
+    const nextInv = [...save.inventory, prev];
+    const nextEq = { ...save.equipment };
+    delete nextEq[action.slot];
+
+    save = recalcVitals({ ...save, inventory: nextInv, equipment: nextEq });
+    logs = pushLog(logs, `你卸下了：${prev.name}。`);
+    return { save, logs };
+  }
+
   if (action.type === 'USE_POTION') {
     const it = save.inventory.find((x) => x.id === 'potion_small');
-    if (!it || !it.qty) {
+    if (!it || it.kind !== 'potion' || !it.qty) {
       return { save, logs: pushLog(logs, '你没有血瓶。') };
     }
     if (save.hp >= save.hpMax) {
@@ -363,10 +508,17 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
     const heal = 18;
     save = { ...save, hp: Math.min(save.hpMax, save.hp + heal) };
     it.qty -= 1;
-    save = { ...save, inventory: save.inventory.filter((x) => x.qty === undefined || x.qty > 0) };
+    save = {
+      ...save,
+      inventory: save.inventory.filter((x) => x.kind !== 'potion' || x.qty === undefined || x.qty > 0),
+    };
     logs = pushLog(logs, `你使用小型血瓶，恢复 ${heal} HP。`);
     return { save, logs };
   }
 
   return rt;
+}
+
+function isGear(it: RpgItem): it is Extract<RpgItem, { kind: 'gear' }> {
+  return it.kind === 'gear';
 }

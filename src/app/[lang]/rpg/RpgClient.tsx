@@ -179,18 +179,33 @@ export function RpgClient(props: { lang: Lang }) {
         </div>
 
         <aside className="inv">
+          <div className="h">装备</div>
+          <div className="muted small">
+            武器：{save.equipment.weapon?.name ?? '无'}
+            <br />
+            护甲：{save.equipment.armor?.name ?? '无'}
+            <br />
+            饰品：{save.equipment.accessory?.name ?? '无'}
+          </div>
+
+          <div className="hr" />
+
           <div className="h">背包</div>
           {save.inventory.length === 0 ? <div className="muted">空</div> : null}
           {save.inventory.map((it) => (
             <div key={it.id} className="it">
               <div className="row">
                 <div className="strong">{it.name}</div>
-                <div className="muted">{it.qty ? `x${it.qty}` : ''}</div>
+                <div className="muted">{'qty' in it && it.qty ? `x${it.qty}` : ''}</div>
               </div>
-              <div className="muted small">{it.kind}</div>
+              <div className="muted small">{it.kind === 'gear' ? `${it.slot} · ${it.rarity} · P${it.power}` : it.kind}</div>
               {save.mode === 'SHOP' ? (
                 <button className="mini" onClick={() => dispatch({ type: 'SHOP_SELL', itemId: it.id })}>
                   出售
+                </button>
+              ) : it.kind === 'gear' ? (
+                <button className="mini" onClick={() => dispatch({ type: 'EQUIP_GEAR', itemId: it.id })}>
+                  穿戴
                 </button>
               ) : null}
             </div>

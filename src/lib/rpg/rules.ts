@@ -1,4 +1,9 @@
-import type { CombatEnemy, RpgSave } from './state';
+// Core RPG combat rules, enemies, and status effects.
+
+import type { CombatEnemy, CombatStatus, Element, MonsterArchetypeId, RpgSave, StatusId } from './state';
+
+import { mulberry32, rngChoice, rngInt } from './rng';
+import { regionOf } from './regions';
 
 export function expToNext(level: number) {
   return Math.floor(40 + level * level * 18);
@@ -17,48 +22,270 @@ export function recalcVitals(p: RpgSave): RpgSave {
   };
 }
 
-export function makeEnemy(mapId: string, seed: number, level: number): CombatEnemy {
+export type MonsterDef = {
+  id: MonsterArchetypeId;
+  nameZh: string;
+  tier: 'normal' | 'elite' | 'boss';
+  element: Element;
+
+  // Scales with player level.
+  hpBase: number;
+  hpPerLevel: number;
+  atkBase: number;
+  atkPerLevel: number;
+  defBase: number;
+  defPerLevel: number;
+
+  skill?:
+    | { id: 'slime_split' }
+    | { id: 'bat_lifesteal'; ratio: number }
+    | { id: 'goblin_heavy_strike'; windupTurns: 1; ratio: number }
+    | { id: 'spider_poison_dot'; turns: number; pctMaxHpPerTurn: number };
+};
+
+export const MONSTERS: Record<MonsterArchetypeId, MonsterDef> = {
+  slime: {
+    id: 'slime',
+    nameZh: '史莱姆',
+    tier: 'normal',
+    element: 'water',
+    hpBase: 14,
+    hpPerLevel: 8,
+    atkBase: 3,
+    atkPerLevel: 2,
+    defBase: 0,
+    defPerLevel: 1,
+  },
+  slime_splitter: {
+    id: 'slime_splitter',
+    nameZh: '分裂史莱姆',
+    tier: 'elite',
+    element: 'water',
+    hpBase: 16,
+    hpPerLevel: 9,
+    atkBase: 4,
+    atkPerLevel: 2,
+    defBase: 1,
+    defPerLevel: 1,
+    skill: { id: 'slime_split' },
+  },
+  slime_king: {
+    id: 'slime_king',
+    nameZh: '史莱姆王',
+    tier: 'boss',
+    element: 'water',
+    hpBase: 30,
+    hpPerLevel: 14,
+    atkBase: 7,
+    atkPerLevel: 3,
+    defBase: 2,
+    defPerLevel: 1,
+    skill: { id: 'slime_split' },
+  },
+
+  goblin: {
+    id: 'goblin',
+    nameZh: '哥布林',
+    tier: 'normal',
+    element: 'wind',
+    hpBase: 14,
+    hpPerLevel: 8,
+    atkBase: 4,
+    atkPerLevel: 2,
+    defBase: 0,
+    defPerLevel: 1,
+  },
+  bat: {
+    id: 'bat',
+    nameZh: '蝙蝠',
+    tier: 'normal',
+    element: 'wood',
+    hpBase: 12,
+    hpPerLevel: 7,
+    atkBase: 3,
+    atkPerLevel: 2,
+    defBase: 0,
+    defPerLevel: 1,
+    skill: { id: 'bat_lifesteal', ratio: 0.35 },
+  },
+  goblin_brute: {
+    id: 'goblin_brute',
+    nameZh: '狂暴哥布林',
+    tier: 'elite',
+    element: 'wind',
+    hpBase: 18,
+    hpPerLevel: 10,
+    atkBase: 6,
+    atkPerLevel: 3,
+    defBase: 1,
+    defPerLevel: 1,
+    skill: { id: 'goblin_heavy_strike', windupTurns: 1, ratio: 1.8 },
+  },
+  forest_spider: {
+    id: 'forest_spider',
+    nameZh: '幽林毒蛛',
+    tier: 'elite',
+    element: 'wood',
+    hpBase: 16,
+    hpPerLevel: 9,
+    atkBase: 5,
+    atkPerLevel: 2,
+    defBase: 1,
+    defPerLevel: 1,
+    skill: { id: 'spider_poison_dot', turns: 3, pctMaxHpPerTurn: 0.05 },
+  },
+  spider_queen: {
+    id: 'spider_queen',
+    nameZh: '蛛后',
+    tier: 'boss',
+    element: 'wood',
+    hpBase: 34,
+    hpPerLevel: 14,
+    atkBase: 8,
+    atkPerLevel: 3,
+    defBase: 2,
+    defPerLevel: 1,
+    skill: { id: 'spider_poison_dot', turns: 4, pctMaxHpPerTurn: 0.05 },
+  },
+
+  cave_bat: {
+    id: 'cave_bat',
+    nameZh: '洞窟蝙蝠',
+    tier: 'normal',
+    element: 'wood',
+    hpBase: 14,
+    hpPerLevel: 8,
+    atkBase: 4,
+    atkPerLevel: 2,
+    defBase: 0,
+    defPerLevel: 1,
+    skill: { id: 'bat_lifesteal', ratio: 0.3 },
+  },
+  ember_slime: {
+    id: 'ember_slime',
+    nameZh: '余烬史莱姆',
+    tier: 'normal',
+    element: 'fire',
+    hpBase: 16,
+    hpPerLevel: 9,
+    atkBase: 4,
+    atkPerLevel: 2,
+    defBase: 1,
+    defPerLevel: 1,
+  },
+  ember_golem: {
+    id: 'ember_golem',
+    nameZh: '余烬魔像',
+    tier: 'elite',
+    element: 'fire',
+    hpBase: 22,
+    hpPerLevel: 12,
+    atkBase: 7,
+    atkPerLevel: 3,
+    defBase: 2,
+    defPerLevel: 2,
+  },
+  magma_wyrm: {
+    id: 'magma_wyrm',
+    nameZh: '熔岩幼龙',
+    tier: 'boss',
+    element: 'fire',
+    hpBase: 36,
+    hpPerLevel: 15,
+    atkBase: 9,
+    atkPerLevel: 3,
+    defBase: 2,
+    defPerLevel: 1,
+  },
+};
+
+export function elementMultiplier(attacker: Element, defender: Element): number {
+  // Simple cycle: water > fire > wood > wind > water
+  if (attacker === defender) return 1;
+  if (attacker === 'water' && defender === 'fire') return 1.2;
+  if (attacker === 'fire' && defender === 'wood') return 1.2;
+  if (attacker === 'wood' && defender === 'wind') return 1.2;
+  if (attacker === 'wind' && defender === 'water') return 1.2;
+
+  if (attacker === 'fire' && defender === 'water') return 0.85;
+  if (attacker === 'wood' && defender === 'fire') return 0.85;
+  if (attacker === 'wind' && defender === 'wood') return 0.85;
+  if (attacker === 'water' && defender === 'wind') return 0.85;
+
+  return 1;
+}
+
+export function makeEnemy(mapId: string, seed: number, playerLevel: number): CombatEnemy {
   const id = `${mapId}_${seed}`;
 
-  const hpMax = 18 + level * 10;
-  const atk = 4 + level * 3;
-  const def = Math.floor(level * 0.8);
+  const region = regionOf(mapId as never);
+  const r = mulberry32(seed);
 
-  const roll = mulberry32(seed)();
+  const pool = [
+    ...region.monsterPool.normal,
+    ...region.monsterPool.elite,
+    ...region.monsterPool.boss,
+  ] as MonsterArchetypeId[];
 
-  let name = '迷雾野兽';
-  if (mapId === 'breeze_plains') {
-    if (roll < 0.78) name = '史莱姆';
-    else if (roll < 0.95) name = '分裂史莱姆';
-    else name = '史莱姆王';
-  } else if (mapId === 'whispering_forest') {
-    if (roll < 0.55) name = '哥布林';
-    else if (roll < 0.78) name = '蝙蝠';
-    else if (roll < 0.92) name = '狂暴哥布林';
-    else name = '幽林毒蛛';
-  } else if (mapId === 'ember_caverns') {
-    if (roll < 0.55) name = '洞窟蝙蝠';
-    else if (roll < 0.82) name = '余烬史莱姆';
-    else if (roll < 0.95) name = '余烬魔像';
-    else name = '熔岩幼龙';
-  }
+  // Weighted by tier.
+  const pick = rngChoice(r, pool, (mid) => {
+    const tier = MONSTERS[mid].tier;
+    return tier === 'normal' ? 6 : tier === 'elite' ? 3 : 1;
+  });
+
+  const def = MONSTERS[pick];
+
+  const levelJitter = rngInt(r, -1, 1);
+  const level = Math.max(1, playerLevel + levelJitter + (def.tier === 'elite' ? 1 : def.tier === 'boss' ? 3 : 0));
+
+  const hpMax = def.hpBase + def.hpPerLevel * level;
+  const atk = def.atkBase + def.atkPerLevel * level;
+  const df = def.defBase + def.defPerLevel * level;
 
   return {
     id,
-    name,
+    archetypeId: def.id,
+    name: def.nameZh,
+    tier: def.tier,
+    element: def.element,
     level,
     hpMax,
     hp: hpMax,
     atk,
-    def,
+    def: df,
+    intent: null,
   };
 }
 
-function mulberry32(a: number) {
-  return function () {
-    let t = (a += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+export function applyDotToPlayer(save: RpgSave, logs: string[]): { save: RpgSave; logs: string[] } {
+  const st = save.statuses.find((x) => x.id === 'poison');
+  if (!st) return { save, logs };
+
+  const dmg = Math.max(1, Math.floor(save.hpMax * st.pctMaxHpPerTurn));
+  const nextHp = Math.max(0, save.hp - dmg);
+  const nextTurns = st.turns - 1;
+
+  logs.push(`毒素发作，你失去 ${dmg} HP。`);
+
+  const nextStatuses = nextTurns > 0 ? [{ ...st, turns: nextTurns }, ...save.statuses.filter((x) => x.id !== 'poison')] : save.statuses.filter((x) => x.id !== 'poison');
+
+  return {
+    save: { ...save, hp: nextHp, statuses: nextStatuses },
+    logs,
   };
+}
+
+export function pushOrRefreshStatus(
+  statuses: CombatStatus[],
+  s: CombatStatus,
+): CombatStatus[] {
+  const rest = statuses.filter((x) => x.id !== s.id);
+  return [s, ...rest];
+}
+
+export function statusNameZh(id: StatusId): string {
+  if (id === 'poison') return '中毒';
+  if (id === 'bleed') return '流血';
+  if (id === 'stun') return '眩晕';
+  return id;
 }

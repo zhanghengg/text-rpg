@@ -17,3 +17,19 @@ export function rngInt(r: () => number, min: number, max: number) {
 export function chance(r: () => number, p: number) {
   return r() < p;
 }
+
+export function rngChoice<T>(r: () => number, items: T[], weight?: (it: T) => number): T {
+  if (items.length === 0) throw new Error('rngChoice: empty');
+  if (!weight) return items[Math.min(items.length - 1, Math.floor(r() * items.length))];
+
+  let total = 0;
+  for (const it of items) total += Math.max(0, weight(it));
+  if (total <= 0) return items[0];
+
+  let roll = r() * total;
+  for (const it of items) {
+    roll -= Math.max(0, weight(it));
+    if (roll <= 0) return it;
+  }
+  return items[items.length - 1];
+}
