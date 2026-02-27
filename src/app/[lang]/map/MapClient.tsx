@@ -133,7 +133,11 @@ export function MapClient(props: { lang: Lang }) {
     }
 
     if (node.type === 'event') {
-      const ev = rollEvent(player.world.seed + Number(node.id.replace(/\D/g, '') || 0) + next.world.fog, lang);
+      const ev = rollEvent(
+        player.world.seed + Number(node.id.replace(/\D/g, '') || 0) + next.world.fog,
+        lang,
+        player.world.mapId,
+      );
       setPlayer(next);
       setEvent(ev);
       return;

@@ -17,6 +17,7 @@ export type WorldEvent = {
 
 type EventTpl = {
   id: string;
+  mapId: 'any' | 'borderlands' | 'mistwood' | 'oldmine' | 'riftcorridor';
   titleEn: string;
   titleZh: string;
   bodyEn: string;
@@ -33,6 +34,7 @@ type EventTpl = {
 const EVENT_POOL: EventTpl[] = [
   {
     id: 'ev_lantern',
+    mapId: 'any',
     titleEn: 'A Lantern That Should Not Burn',
     titleZh: '不该燃烧的灯',
     bodyEn: 'A lantern hangs in the fog with no post, no hand. It burns anyway.',
@@ -56,6 +58,7 @@ const EVENT_POOL: EventTpl[] = [
   },
   {
     id: 'ev_bloodmoss',
+    mapId: 'any',
     titleEn: 'Bloodmoss',
     titleZh: '血苔',
     bodyEn: 'Red moss grows on stone like a fresh wound. It pulses faintly.',
@@ -79,6 +82,7 @@ const EVENT_POOL: EventTpl[] = [
   },
   {
     id: 'ev_cointrail',
+    mapId: 'any',
     titleEn: 'Coin Trail',
     titleZh: '金币痕迹',
     bodyEn: 'A line of coins disappears into the fog, too neat to be real.',
@@ -102,6 +106,7 @@ const EVENT_POOL: EventTpl[] = [
   },
   {
     id: 'ev_auto_202602271145',
+    mapId: 'any',
     titleEn: 'A Note Written in Ash',
     titleZh: '灰烬写下的便签',
     bodyEn: 'Someone left a message on stone. The fog tries to erase it as you read.',
@@ -125,6 +130,7 @@ const EVENT_POOL: EventTpl[] = [
   },
   {
     id: 'ev_auto_shrine',
+    mapId: 'any',
     titleEn: 'A Half-Buried Shrine',
     titleZh: '半埋的祠龛',
     bodyEn: 'Stone teeth peek from the earth. A shrine, old enough that the fog has forgotten its name.',
@@ -150,6 +156,7 @@ const EVENT_POOL: EventTpl[] = [
   // Borderlands (+)
   {
     id: 'ev_border_windpost',
+    mapId: 'borderlands',
     titleEn: 'A Wind-Carved Post',
     titleZh: '风刻的木桩',
     bodyEn: 'A lone post stands where roads used to meet. The wind whistles through old nails.',
@@ -173,6 +180,7 @@ const EVENT_POOL: EventTpl[] = [
   },
   {
     id: 'ev_border_scavengers',
+    mapId: 'borderlands',
     titleEn: 'Scavengers in the Grass',
     titleZh: '草丛里的拾荒者',
     bodyEn: 'Two silhouettes freeze when you arrive. Not enemies. Not friends either.',
@@ -198,6 +206,7 @@ const EVENT_POOL: EventTpl[] = [
   // Mistwood (+)
   {
     id: 'ev_mist_fireflies',
+    mapId: 'mistwood',
     titleEn: "Fireflies That Don't Blink",
     titleZh: '不眨眼的萤火',
     bodyEn: 'A cluster of lights hangs still, like someone pinned the night to a branch.',
@@ -221,6 +230,7 @@ const EVENT_POOL: EventTpl[] = [
   },
   {
     id: 'ev_mist_bitterroot',
+    mapId: 'mistwood',
     titleEn: 'Bitterroot',
     titleZh: '苦根',
     bodyEn: 'A pale root juts from the soil, smelling of medicine and wet bark.',
@@ -246,6 +256,7 @@ const EVENT_POOL: EventTpl[] = [
   // Old Mine (+)
   {
     id: 'ev_mine_rattlecart',
+    mapId: 'oldmine',
     titleEn: 'The Rattlecart',
     titleZh: '叮当矿车',
     bodyEn: 'An empty mine cart rolls by itself, rattling like laughter in a tunnel.',
@@ -269,6 +280,7 @@ const EVENT_POOL: EventTpl[] = [
   },
   {
     id: 'ev_mine_orevein',
+    mapId: 'oldmine',
     titleEn: 'A Singing Ore Vein',
     titleZh: '会唱歌的矿脉',
     bodyEn: 'A thin vein hums when you touch it, as if the stone remembers a melody.',
@@ -294,6 +306,7 @@ const EVENT_POOL: EventTpl[] = [
   // Rift Corridor (+)
   {
     id: 'ev_rift_afterimage',
+    mapId: 'riftcorridor',
     titleEn: 'Afterimage',
     titleZh: '残像',
     bodyEn: 'You see yourself half a step ahead. It turns its head. You feel late.',
@@ -317,6 +330,7 @@ const EVENT_POOL: EventTpl[] = [
   },
   {
     id: 'ev_rift_nullroom',
+    mapId: 'riftcorridor',
     titleEn: 'A Room With No Sound',
     titleZh: '无声之室',
     bodyEn: "For a moment, even the fog is quiet. Your heartbeat is a drum you can't unhear.",
@@ -342,9 +356,10 @@ const EVENT_POOL: EventTpl[] = [
 
 ];
 
-export function rollEvent(seed: number, lang: Lang): WorldEvent {
+export function rollEvent(seed: number, lang: Lang, mapId: EventTpl['mapId'] = 'any'): WorldEvent {
   const r = mulberry32(seed);
-  const tpl = pickOne(r, EVENT_POOL);
+  const pool = EVENT_POOL.filter((e) => e.mapId === 'any' || e.mapId === mapId);
+  const tpl = pickOne(r, pool.length ? pool : EVENT_POOL);
 
   return {
     id: `${tpl.id}_${seed}`,

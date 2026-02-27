@@ -109,7 +109,14 @@ function makeNode(id: string, type: NodeType, label: string, to: string[], x: nu
 }
 
 export function generateMap(seed: number, mapId: MapId, lang: 'en' | 'zh'): WorldGenState {
-  const r = mulberry32(seed);
+  // Map-specific stream so different maps diverge strongly even with same base seed.
+  const mapSalt: Record<MapId, number> = {
+    borderlands: 101,
+    mistwood: 202,
+    oldmine: 303,
+    riftcorridor: 404,
+  };
+  const r = mulberry32(seed + mapSalt[mapId] * 999);
   const meta = MAP_META[mapId];
   const theme = MAP_THEME[mapId];
 
