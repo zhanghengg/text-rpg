@@ -5,9 +5,10 @@ import type { GeneratedMap } from '@/lib/world/world';
 export function NodeGraph(props: {
   map: GeneratedMap;
   currentId: string;
+  reachableIds: Set<string>;
   onSelect: (id: string) => void;
 }) {
-  const { map, currentId, onSelect } = props;
+  const { map, currentId, reachableIds, onSelect } = props;
 
   const nodes = Object.values(map.nodes);
 
@@ -82,14 +83,20 @@ export function NodeGraph(props: {
         const left = x2px(n.x);
         const top = y2px(n.y);
         const isOn = n.id === currentId;
+        const isReachable = reachableIds.has(n.id);
+        const isDim = !isOn && !isReachable;
 
         return (
           <button
             key={n.id}
-            className={isOn ? 'node on' : 'node'}
+            className={
+              isOn ? 'node on' : isReachable ? 'node reachable' : isDim ? 'node dim' : 'node'
+            }
             style={{ left, top }}
             onClick={() => onSelect(n.id)}
             title={`${n.label} (${n.type})`}
+            aria-current={isOn ? 'true' : undefined}
+            aria-disabled={isDim ? 'true' : undefined}
           >
             <span className="dot" />
             <span className="lbl">{n.label}</span>
@@ -150,6 +157,16 @@ const css = String.raw`
   .node.on {
     border-color: rgba(112,246,255,0.32);
     background: rgba(112,246,255,0.12);
+  }
+
+  .node.reachable {
+    border-color: rgba(255,211,110,0.22);
+    background: rgba(255,211,110,0.07);
+  }
+
+  .node.dim {
+    opacity: 0.45;
+    filter: saturate(0.65);
   }
 
   .dot {

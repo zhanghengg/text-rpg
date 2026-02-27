@@ -315,18 +315,23 @@ export function MapClient(props: { lang: Lang }) {
         <div className="panel">
           <div className="h">{lang === 'zh' ? '节点图' : 'Node Graph'}</div>
           {gen ? (
-            <NodeGraph map={gen.map} currentId={player.world.nodeId} onSelect={(id) => {
-              const n = gen.map.nodes[id];
-              if (!n) return;
-              // Allow move only if reachable from current or it's the current node.
-              const cur = gen.map.nodes[player.world.nodeId];
-              const ok = id === player.world.nodeId || (cur?.to ?? []).includes(id);
-              if (!ok) {
-                setToast({ kind: 'bad', text: lang === 'zh' ? '不可达。请从当前节点选择下一步。' : 'Not reachable. Pick a connected exit.' });
-                return;
-              }
-              moveTo(n);
-            }} />
+            <NodeGraph
+              map={gen.map}
+              currentId={player.world.nodeId}
+              reachableIds={new Set([player.world.nodeId, ...((gen.map.nodes[player.world.nodeId]?.to ?? []) as string[])])}
+              onSelect={(id) => {
+                const n = gen.map.nodes[id];
+                if (!n) return;
+                // Allow move only if reachable from current or it's the current node.
+                const cur = gen.map.nodes[player.world.nodeId];
+                const ok = id === player.world.nodeId || (cur?.to ?? []).includes(id);
+                if (!ok) {
+                  setToast({ kind: 'bad', text: lang === 'zh' ? '不可达。请从当前节点选择下一步。' : 'Not reachable. Pick a connected exit.' });
+                  return;
+                }
+                moveTo(n);
+              }}
+            />
           ) : (
             <div className="muted">{lang === 'zh' ? '地图加载中…' : 'Loading…'}</div>
           )}
