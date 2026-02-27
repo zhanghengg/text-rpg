@@ -147,6 +147,199 @@ const EVENT_POOL: EventTpl[] = [
     ],
   },
 
+  // Borderlands (+)
+  {
+    id: 'ev_border_windpost',
+    titleEn: 'A Wind-Carved Post',
+    titleZh: '风刻的木桩',
+    bodyEn: 'A lone post stands where roads used to meet. The wind whistles through old nails.',
+    bodyZh: '一根孤零零的木桩立在曾经的路口。风穿过旧钉子，发出哨音。',
+    options: [
+      {
+        id: 'search',
+        labelEn: 'Search the base',
+        labelZh: '翻找底部',
+        outcomeEn: { text: 'You find a small pouch of grit and coin. +9g', goldDelta: 9 },
+        outcomeZh: { text: '你在底部摸到一只小布袋，里面混着沙和钱。+9金币', goldDelta: 9 },
+      },
+      {
+        id: 'rest',
+        labelEn: 'Lean and rest a moment',
+        labelZh: '靠着歇会儿',
+        outcomeEn: { text: 'The wind clears your head. Fog -1', fogDelta: -1 },
+        outcomeZh: { text: '风把你脑子里的杂音吹散。雾值-1', fogDelta: -1 },
+      },
+    ],
+  },
+  {
+    id: 'ev_border_scavengers',
+    titleEn: 'Scavengers in the Grass',
+    titleZh: '草丛里的拾荒者',
+    bodyEn: 'Two silhouettes freeze when you arrive. Not enemies. Not friends either.',
+    bodyZh: '你一出现，两道影子就僵住了。不是敌人，也绝不是朋友。',
+    options: [
+      {
+        id: 'trade',
+        labelEn: 'Trade scraps (gain 7g)',
+        labelZh: '用废料交换（+7金币）',
+        outcomeEn: { text: 'A quick exchange, no names. +7g', goldDelta: 7 },
+        outcomeZh: { text: '交易迅速，没人报名字。+7金币', goldDelta: 7 },
+      },
+      {
+        id: 'push',
+        labelEn: 'Push your luck',
+        labelZh: '趁火打劫',
+        outcomeEn: { text: 'You get a handful of coins and a scratch. +12g, -4 HP', goldDelta: 12, hpDelta: -4 },
+        outcomeZh: { text: '你抢到一把钱，也挨了一下。+12金币，生命-4', goldDelta: 12, hpDelta: -4 },
+      },
+    ],
+  },
+
+  // Mistwood (+)
+  {
+    id: 'ev_mist_fireflies',
+    titleEn: "Fireflies That Don't Blink",
+    titleZh: '不眨眼的萤火',
+    bodyEn: 'A cluster of lights hangs still, like someone pinned the night to a branch.',
+    bodyZh: '一团光点静止不动，像有人把夜色钉在树枝上。',
+    options: [
+      {
+        id: 'catch',
+        labelEn: 'Catch one',
+        labelZh: '捉一只',
+        outcomeEn: { text: 'It dissolves into dust in your palm. Fog -1', fogDelta: -1 },
+        outcomeZh: { text: '它在你掌心化成粉尘。雾值-1', fogDelta: -1 },
+      },
+      {
+        id: 'follow',
+        labelEn: 'Follow the lights',
+        labelZh: '跟着走',
+        outcomeEn: { text: 'They lead you to dropped coins. +11g, fog +1', goldDelta: 11, fogDelta: 1 },
+        outcomeZh: { text: '它们把你引到一堆散落金币。+11金币，雾值+1', goldDelta: 11, fogDelta: 1 },
+      },
+    ],
+  },
+  {
+    id: 'ev_mist_bitterroot',
+    titleEn: 'Bitterroot',
+    titleZh: '苦根',
+    bodyEn: 'A pale root juts from the soil, smelling of medicine and wet bark.',
+    bodyZh: '一截苍白的根从泥里露出，闻起来像药和湿树皮。',
+    options: [
+      {
+        id: 'brew',
+        labelEn: 'Brew a quick tea',
+        labelZh: '煮一杯速茶',
+        outcomeEn: { text: 'Warmth spreads through you. +5 HP', hpDelta: 5 },
+        outcomeZh: { text: '暖意从腹中扩散。生命+5', hpDelta: 5 },
+      },
+      {
+        id: 'sell',
+        labelEn: 'Bundle and sell later (+8g)',
+        labelZh: '捆起来以后卖（+8金币）',
+        outcomeEn: { text: 'You pack it carefully. +8g', goldDelta: 8 },
+        outcomeZh: { text: '你把它扎好收起。+8金币', goldDelta: 8 },
+      },
+    ],
+  },
+
+  // Old Mine (+)
+  {
+    id: 'ev_mine_rattlecart',
+    titleEn: 'The Rattlecart',
+    titleZh: '叮当矿车',
+    bodyEn: 'An empty mine cart rolls by itself, rattling like laughter in a tunnel.',
+    bodyZh: '一辆空矿车自己滑过，叮当作响，像隧道里的笑声。',
+    options: [
+      {
+        id: 'ride',
+        labelEn: 'Hop on (risky)',
+        labelZh: '跳上去（有风险）',
+        outcomeEn: { text: 'You crash into a stash. +15g, -5 HP', goldDelta: 15, hpDelta: -5 },
+        outcomeZh: { text: '你撞进一处藏匿点。+15金币，生命-5', goldDelta: 15, hpDelta: -5 },
+      },
+      {
+        id: 'letpass',
+        labelEn: 'Let it pass',
+        labelZh: '让它过去',
+        outcomeEn: { text: 'You stay still. The mine feels less hostile. Fog -1', fogDelta: -1 },
+        outcomeZh: { text: '你保持不动。矿坑的敌意少了一点。雾值-1', fogDelta: -1 },
+      },
+    ],
+  },
+  {
+    id: 'ev_mine_orevein',
+    titleEn: 'A Singing Ore Vein',
+    titleZh: '会唱歌的矿脉',
+    bodyEn: 'A thin vein hums when you touch it, as if the stone remembers a melody.',
+    bodyZh: '你一碰那条细矿脉，它就嗡鸣起来，仿佛石头记得旋律。',
+    options: [
+      {
+        id: 'chip',
+        labelEn: 'Chip off a sample',
+        labelZh: '凿一点样品',
+        outcomeEn: { text: 'You get usable ore. +13g, fog +1', goldDelta: 13, fogDelta: 1 },
+        outcomeZh: { text: '你凿到可用矿石。+13金币，雾值+1', goldDelta: 13, fogDelta: 1 },
+      },
+      {
+        id: 'listen',
+        labelEn: 'Just listen',
+        labelZh: '只是听',
+        outcomeEn: { text: 'The humming syncs with your breath. +3 HP', hpDelta: 3 },
+        outcomeZh: { text: '嗡鸣与你呼吸同频。生命+3', hpDelta: 3 },
+      },
+    ],
+  },
+
+  // Rift Corridor (+)
+  {
+    id: 'ev_rift_afterimage',
+    titleEn: 'Afterimage',
+    titleZh: '残像',
+    bodyEn: 'You see yourself half a step ahead. It turns its head. You feel late.',
+    bodyZh: '你看到“自己”提前半步走在前面。它回头看你。你觉得自己迟到了。',
+    options: [
+      {
+        id: 'sync',
+        labelEn: 'Match its pace',
+        labelZh: '跟上它的步伐',
+        outcomeEn: { text: 'The world steadies. Fog -2', fogDelta: -2 },
+        outcomeZh: { text: '世界稳住了。雾值-2', fogDelta: -2 },
+      },
+      {
+        id: 'chase',
+        labelEn: 'Chase it down',
+        labelZh: '追上去',
+        outcomeEn: { text: 'You slam into invisible glass. -6 HP, +10g', hpDelta: -6, goldDelta: 10 },
+        outcomeZh: { text: '你撞上看不见的玻璃。生命-6，+10金币', hpDelta: -6, goldDelta: 10 },
+      },
+    ],
+  },
+  {
+    id: 'ev_rift_nullroom',
+    titleEn: 'A Room With No Sound',
+    titleZh: '无声之室',
+    bodyEn: "For a moment, even the fog is quiet. Your heartbeat is a drum you can't unhear.",
+    bodyZh: '有那么一瞬间，连迷雾都安静了。你的心跳像鼓点，躲也躲不开。',
+    options: [
+      {
+        id: 'meditate',
+        labelEn: 'Meditate',
+        labelZh: '冥想',
+        outcomeEn: { text: 'You leave calmer than you entered. Fog -1, +2 HP', fogDelta: -1, hpDelta: 2 },
+        outcomeZh: { text: '你离开时比进来更平静。雾值-1，生命+2', fogDelta: -1, hpDelta: 2 },
+      },
+      {
+        id: 'loot',
+        labelEn: 'Loot the silence',
+        labelZh: '掠夺这份安静',
+        outcomeEn: { text: 'You find coins where sound should be. +16g, fog +1', goldDelta: 16, fogDelta: 1 },
+        outcomeZh: { text: '你在“本该有声音的地方”摸到金币。+16金币，雾值+1', goldDelta: 16, fogDelta: 1 },
+      },
+    ],
+  },
+
+
 ];
 
 export function rollEvent(seed: number, lang: Lang): WorldEvent {
