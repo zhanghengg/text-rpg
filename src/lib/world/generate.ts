@@ -25,8 +25,8 @@ function nodeId(ix: number) {
   return `n${ix}`;
 }
 
-function makeNode(id: string, type: NodeType, label: string, to: string[]): MapNode {
-  return { id, type, label, to };
+function makeNode(id: string, type: NodeType, label: string, to: string[], x: number, y: number): MapNode {
+  return { id, type, label, to, x, y };
 }
 
 export function generateMap(seed: number, mapId: MapId, lang: 'en' | 'zh'): WorldGenState {
@@ -35,20 +35,30 @@ export function generateMap(seed: number, mapId: MapId, lang: 'en' | 'zh'): Worl
 
   const nodes: Record<string, MapNode> = {};
   const start = 'camp';
-  nodes[start] = makeNode(start, 'camp', lang === 'zh' ? '营地' : 'Camp', [nodeId(1)]);
+  nodes[start] = makeNode(start, 'camp', lang === 'zh' ? '营地' : 'Camp', [nodeId(1)], 0, 0);
 
   const len = rngInt(r, 10, 14);
+
+  const cols = 4;
+  const dx = 1;
+  const dy = 1;
 
   for (let i = 1; i <= len; i++) {
     const tpl = pickOne(r, NODE_POOL);
     const id = nodeId(i);
 
     const label = lang === 'zh' ? tpl.labelZh : tpl.labelEn;
-    nodes[id] = makeNode(id, tpl.type, label, []);
+
+    const col = (i - 1) % cols;
+    const row = Math.floor((i - 1) / cols) + 1;
+    const jitterX = (r() - 0.5) * 0.35;
+    const jitterY = (r() - 0.5) * 0.35;
+
+    nodes[id] = makeNode(id, tpl.type, label, [], col * dx + jitterX, row * dy + jitterY);
   }
 
   const bossId = `boss`;
-  nodes[bossId] = makeNode(bossId, 'boss', lang === 'zh' ? '首领' : 'Boss', []);
+  nodes[bossId] = makeNode(bossId, 'boss', lang === 'zh' ? '首领' : 'Boss', [], 1.5, Math.floor(len / cols) + 2);
 
   for (let i = 1; i <= len; i++) {
     const id = nodeId(i);

@@ -7,6 +7,8 @@ export type MapNode = {
   type: NodeType;
   label: string;
   to: NodeId[];
+  x: number;
+  y: number;
 };
 
 export type GeneratedMap = {

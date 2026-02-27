@@ -12,6 +12,8 @@ import { loadSave, writeSave } from '@/lib/save';
 import { recalcPlayer } from '@/lib/game';
 import { generateMap } from '@/lib/world/generate';
 import type { MapNode, NodeType } from '@/lib/world/world';
+
+import { NodeGraph } from './NodeGraph';
 import { rollEvent, type WorldEvent } from '@/lib/events/events';
 import { rollDrop } from '@/lib/loot/loot';
 
@@ -229,22 +231,25 @@ export function MapClient(props: { lang: Lang }) {
         </div>
 
         <div className="panel">
-          <div className="h">{lang === 'zh' ? '地图概览' : 'Map Overview'}</div>
-          <div className="mini">
-            {(gen ? Object.values(gen.map.nodes) : []).slice(0, 18).map((n) => (
-              <div key={n.id} className={n.id === player.world.nodeId ? 'miniNode on' : 'miniNode'}>
-                <div className="miniTop">
-                  <span className="miniId">{n.id}</span>
-                  <span className="miniTag">{n.type}</span>
-                </div>
-                <div className="miniLabel">{n.label}</div>
-              </div>
-            ))}
-          </div>
+          <div className="h">{lang === 'zh' ? '节点图' : 'Node Graph'}</div>
+          {gen ? (
+            <NodeGraph map={gen.map} currentId={player.world.nodeId} onSelect={(id) => {
+              const n = gen.map.nodes[id];
+              if (!n) return;
+              // Allow move only if reachable from current or it's the current node.
+              const cur = gen.map.nodes[player.world.nodeId];
+              const ok = id === player.world.nodeId || (cur?.to ?? []).includes(id);
+              if (!ok) {
+                setToast({ kind: 'bad', text: lang === 'zh' ? '不可达。请从当前节点选择下一步。' : 'Not reachable. Pick a connected exit.' });
+                return;
+              }
+              moveTo(n);
+            }} />
+          ) : (
+            <div className="muted">{lang === 'zh' ? '地图加载中…' : 'Loading…'}</div>
+          )}
           <div className="muted small" style={{ marginTop: 10 }}>
-            {lang === 'zh'
-              ? '（临时概览：下一步会做成真正的节点图与可视化连线。）'
-              : '(Temporary overview: next step will draw a proper node graph.)'}
+            {lang === 'zh' ? '点击相连节点移动（仅允许从当前节点走一步）。' : 'Click a connected node to move (one step from current).'}
           </div>
         </div>
       </section>
@@ -387,25 +392,6 @@ const css = String.raw`
 
   .opts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 
-  .mini {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .miniNode {
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(0,0,0,0.18);
-    padding: 10px;
-  }
-
-  .miniNode.on { border-color: rgba(112,246,255,0.22); background: rgba(112,246,255,0.06); }
-
-  .miniTop { display: flex; justify-content: space-between; gap: 10px; }
-  .miniId { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 12px; }
-  .miniTag { font-size: 11px; color: rgba(255,255,255,0.64); }
-  .miniLabel { margin-top: 6px; font-weight: 800; font-size: 13px; }
 
   @media (max-width: 920px) {
     .grid { grid-template-columns: 1fr; }
