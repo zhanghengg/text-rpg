@@ -1,6 +1,7 @@
 import type { BattleLogEntry, BattleState, Enemy, Item, Player } from './types';
 
 import { ENEMIES, STARTER_ITEMS } from './content';
+import { rollDrop } from './loot/loot';
 import { mulberry32, pickOne, rngInt } from './rng';
 import { baseStatsForJob, calcDerived, expToNext } from './rules';
 
@@ -27,8 +28,9 @@ export function newGame(name: string, job: Player['job']): Player {
     equipment: {},
 
     world: {
+      seed: Math.floor(Date.now() / 1000),
       mapId: 'borderlands',
-      nodeId: 'camp_0',
+      nodeId: 'camp',
       danger: 1,
       fog: 0,
       chapter: 1,
@@ -141,10 +143,34 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
     const exp = 14 + b.enemy.level * 8;
     const gold = 6 + b.enemy.level * 4;
 
-    log.push({ t: Date.now(), side: 'system', text: `${b.enemy.name} is defeated. +${exp} EXP, +${gold}g.` });
+    const dropSeed = b.seed + 17;
+    const drop = rollDrop(dropSeed, p.level, p.job);
 
-    let next: Player = { ...p, hp: playerHp, gold: p.gold + gold, exp: p.exp + exp };
+    log.push({
+      t: Date.now(),
+      side: 'system',
+      text: `${b.enemy.name} is defeated. +${exp} EXP, +${gold}g. Found: ${drop.name}.`,
+    });
+
+    let next: Player = {
+      ...p,
+      hp: playerHp,
+      gold: p.gold + gold,
+      exp: p.exp + exp,
+      inventory: [drop, ...p.inventory],
+    };
     next = levelUpIfNeeded(next, log);
+
+    // If the player came from Explore and had a pending battle, clear it.
+    if (next.world.pendingBattleSeed) {
+      next = {
+        ...next,
+        world: {
+          ...next.world,
+          pendingBattleSeed: undefined,
+        },
+      };
+    }
 
     const battle: BattleState = {
       ...b,

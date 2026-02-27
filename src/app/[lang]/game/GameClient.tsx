@@ -11,7 +11,7 @@ import { JOB_LABEL, MAP_LABEL } from '@/lib/i18n/labels';
 import { newGame, recalcPlayer, startBattle, stepBattle, type PlayerAction } from '@/lib/game';
 import { clearSave, loadSave, writeSave } from '@/lib/save';
 
-type Screen = 'camp' | 'battle' | 'inventory' | 'map';
+type Screen = 'camp' | 'battle' | 'inventory';
 
 function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
@@ -75,7 +75,7 @@ export function GameClient(props: { lang: Lang }) {
   function onStartBattle() {
     ensurePlayer();
     const p = player ?? newGame('Adventurer', 'guard');
-    const seed = Math.floor(Date.now() / 1000);
+    const seed = p.world.pendingBattleSeed ?? Math.floor(Date.now() / 1000);
     setBattle(startBattle(seed, p));
     setScreen('battle');
   }
@@ -100,13 +100,9 @@ export function GameClient(props: { lang: Lang }) {
           <button className={screen === 'camp' ? 'tab on' : 'tab'} onClick={() => setScreen('camp')}>
             {t.nav.camp}
           </button>
-          <button
-            className={screen === 'map' ? 'tab on' : 'tab'}
-            onClick={() => setScreen('map')}
-            disabled={!player}
-          >
-            {t.nav.map}
-          </button>
+          <Link className="tab link" href={`/${lang}/map`}>
+            {t.nav.explore}
+          </Link>
           <button
             className={screen === 'inventory' ? 'tab on' : 'tab'}
             onClick={() => setScreen('inventory')}
@@ -181,7 +177,6 @@ export function GameClient(props: { lang: Lang }) {
 
         <main className="panel main">
           {screen === 'camp' ? <Camp t={t} player={player} /> : null}
-          {screen === 'map' ? <MapView t={t} player={player} lang={lang} /> : null}
           {screen === 'inventory' ? <GearView t={t} player={player} /> : null}
           {screen === 'battle' ? <BattleView t={t} battle={battle} onAct={act} /> : null}
         </main>
@@ -202,35 +197,6 @@ function Camp(props: { t: ReturnType<typeof getDict>; player: Player | null }) {
         <p className="p">{t.camp.text}</p>
         <div className="callout">{t.camp.note}</div>
       </>}
-    </>
-  );
-}
-
-function MapView(props: { t: ReturnType<typeof getDict>; player: Player | null; lang: Lang }) {
-  const p = props.player;
-  const t = props.t;
-  const lang = props.lang;
-
-  return (
-    <>
-      <div className="h">{t.mapView.title}</div>
-      {!p ? (
-        <p className="p">{t.mapView.noSave}</p>
-      ) : (
-        <>
-          <p className="p">
-            {t.mapView.currentRegion}: <span className="strong">{MAP_LABEL[lang][p.world.mapId]}</span> · {t.mapView.node}:{' '}
-            <span className="mono">{p.world.nodeId}</span>
-          </p>
-          <div className="map">
-            <div className="node on">{lang === 'zh' ? '营地' : 'Camp'}</div>
-            <div className="node">{lang === 'zh' ? '岔路' : 'Fork'}</div>
-            <div className="node">{lang === 'zh' ? '遗迹' : 'Ruins'}</div>
-            <div className="node">{lang === 'zh' ? '巢穴' : 'Den'}</div>
-          </div>
-          <div className="muted">{t.mapView.placeholder}</div>
-        </>
-      )}
     </>
   );
 }

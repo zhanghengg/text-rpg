@@ -23,6 +23,7 @@ export type Dict = {
     map: string;
     gear: string;
     battle: string;
+    explore: string;
   };
 
   status: {
@@ -106,6 +107,7 @@ const en: Dict = {
     map: 'Map',
     gear: 'Gear',
     battle: 'Battle',
+    explore: 'Explore',
   },
 
   status: {
@@ -189,6 +191,7 @@ const zh: Dict = {
     map: '地图',
     gear: '装备',
     battle: '战斗',
+    explore: '探索',
   },
 
   status: {

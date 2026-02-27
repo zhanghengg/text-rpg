@@ -52,11 +52,13 @@ export type Player = {
 };
 
 export type WorldState = {
+  seed: number;
   mapId: MapId;
   nodeId: NodeId;
   danger: number;
   fog: number;
   chapter: number;
+  pendingBattleSeed?: number;
 };
 
 export type MapId = 'borderlands' | 'mistwood' | 'oldmine' | 'riftcorridor';
