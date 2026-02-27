@@ -121,6 +121,13 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
     };
   }
 
+  if (action.type === 'SET_MODE') {
+    if (action.mode !== 'CAMP') return rt;
+    save = recalcVitals({ ...save, mode: 'CAMP', mapId: null, pos: { x: 0, y: 0 }, combat: undefined });
+    logs = pushLog(logs, '你回到了营地。火堆噼啪作响，迷雾在远处翻涌。');
+    return { save, logs };
+  }
+
   if (action.type === 'CAMP_REST') {
     if (save.mode !== 'CAMP') return rt;
     const cost = 10;
