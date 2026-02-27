@@ -221,26 +221,31 @@ export function makeEnemy(mapId: string, seed: number, playerLevel: number): Com
   const region = regionOf(mapId as never);
   const r = mulberry32(seed);
 
-  const pool = [
-    ...region.monsterPool.normal,
-    ...region.monsterPool.elite,
-    ...region.monsterPool.boss,
-  ] as MonsterArchetypeId[];
+  // Region-specific difficulty knobs (keeps zones feeling distinct).
+  const regionLevelBonus = mapId === 'breeze_plains' ? 0 : mapId === 'whispering_forest' ? 1 : 2;
+  const hpMult = mapId === 'breeze_plains' ? 1.0 : mapId === 'whispering_forest' ? 1.08 : 1.16;
+  const atkMult = mapId === 'breeze_plains' ? 1.0 : mapId === 'whispering_forest' ? 1.06 : 1.14;
+  const defMult = mapId === 'breeze_plains' ? 1.0 : mapId === 'whispering_forest' ? 1.05 : 1.12;
 
-  // Weighted by tier.
-  const pick = rngChoice(r, pool, (mid) => {
-    const tier = MONSTERS[mid].tier;
-    return tier === 'normal' ? 6 : tier === 'elite' ? 3 : 1;
-  });
+  const pool = [...region.monsterPool.normal, ...region.monsterPool.elite, ...region.monsterPool.boss] as MonsterArchetypeId[];
+
+  // Weighted by tier (but region affects how often elites/bosses appear).
+  const tierWeight = (t: MonsterDef['tier']) => {
+    if (mapId === 'breeze_plains') return t === 'normal' ? 7 : t === 'elite' ? 2 : 0.6;
+    if (mapId === 'whispering_forest') return t === 'normal' ? 6 : t === 'elite' ? 3 : 0.9;
+    return t === 'normal' ? 5 : t === 'elite' ? 3.4 : 1.2;
+  };
+
+  const pick = rngChoice(r, pool, (mid) => tierWeight(MONSTERS[mid].tier));
 
   const def = MONSTERS[pick];
 
   const levelJitter = rngInt(r, -1, 1);
-  const level = Math.max(1, playerLevel + levelJitter + (def.tier === 'elite' ? 1 : def.tier === 'boss' ? 3 : 0));
+  const level = Math.max(1, playerLevel + regionLevelBonus + levelJitter + (def.tier === 'elite' ? 1 : def.tier === 'boss' ? 3 : 0));
 
-  const hpMax = def.hpBase + def.hpPerLevel * level;
-  const atk = def.atkBase + def.atkPerLevel * level;
-  const df = def.defBase + def.defPerLevel * level;
+  const hpMax = Math.floor((def.hpBase + def.hpPerLevel * level) * hpMult);
+  const atk = Math.floor((def.atkBase + def.atkPerLevel * level) * atkMult);
+  const df = Math.floor((def.defBase + def.defPerLevel * level) * defMult);
 
   return {
     id,
