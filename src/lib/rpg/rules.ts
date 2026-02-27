@@ -258,21 +258,42 @@ export function makeEnemy(mapId: string, seed: number, playerLevel: number): Com
 }
 
 export function applyDotToPlayer(save: RpgSave, logs: string[]): { save: RpgSave; logs: string[] } {
-  const st = save.statuses.find((x) => x.id === 'poison');
-  if (!st) return { save, logs };
+  const poison = save.statuses.find((x) => x.id === 'poison');
+  const bleed = save.statuses.find((x) => x.id === 'bleed');
 
-  const dmg = Math.max(1, Math.floor(save.hpMax * st.pctMaxHpPerTurn));
-  const nextHp = Math.max(0, save.hp - dmg);
-  const nextTurns = st.turns - 1;
+  // Poison ticks.
+  if (poison) {
+    const dmg = Math.max(1, Math.floor(save.hpMax * poison.pctMaxHpPerTurn));
+    const nextHp = Math.max(0, save.hp - dmg);
+    const nextTurns = poison.turns - 1;
 
-  logs.push(`毒素发作，你失去 ${dmg} HP。`);
+    logs.push(`毒素发作，你失去 ${dmg} HP。`);
 
-  const nextStatuses = nextTurns > 0 ? [{ ...st, turns: nextTurns }, ...save.statuses.filter((x) => x.id !== 'poison')] : save.statuses.filter((x) => x.id !== 'poison');
+    const nextStatuses =
+      nextTurns > 0
+        ? [{ ...poison, turns: nextTurns }, ...save.statuses.filter((x) => x.id !== 'poison')]
+        : save.statuses.filter((x) => x.id !== 'poison');
 
-  return {
-    save: { ...save, hp: nextHp, statuses: nextStatuses },
-    logs,
-  };
+    save = { ...save, hp: nextHp, statuses: nextStatuses };
+  }
+
+  // Bleed ticks.
+  if (bleed) {
+    const dmg = Math.max(1, bleed.dmgPerTurn);
+    const nextHp = Math.max(0, save.hp - dmg);
+    const nextTurns = bleed.turns - 1;
+
+    logs.push(`伤口渗血，你失去 ${dmg} HP。`);
+
+    const nextStatuses =
+      nextTurns > 0
+        ? [{ ...bleed, turns: nextTurns }, ...save.statuses.filter((x) => x.id !== 'bleed')]
+        : save.statuses.filter((x) => x.id !== 'bleed');
+
+    save = { ...save, hp: nextHp, statuses: nextStatuses };
+  }
+
+  return { save, logs };
 }
 
 export function pushOrRefreshStatus(

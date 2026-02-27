@@ -7,7 +7,7 @@ import { rollGear } from './gear';
 import { applyDotToPlayer, expToNext, makeEnemy, pushOrRefreshStatus, recalcVitals } from './rules';
 import { SHOP_STOCK, sellPrice } from './shop';
 
-import { computePlayerStats, enemyAttackDamage, playerAttackDamage } from './combat';
+import { computePlayerStats, enemyAttackDamage, playerAttackDamage, playerElement } from './combat';
 
 function logId(t: number) {
   return `${t}_${Math.random().toString(16).slice(2)}`;
@@ -246,7 +246,45 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
     }
 
     if (poi?.id === 'hunter_hut') {
-      logs = pushLog(logs, '你发现一间猎人小屋。门后似乎有隐藏的货架（暂未开放）。');
+      // Hidden shop: sells a couple of class-neutral consumables and one random gear.
+      const r0 = mulberry32(save.seed + next.x * 31 + next.y * 97 + 1337);
+      const offerGear = rollGear(save.seed + next.x * 999 + next.y * 777 + 4242, chance(r0, 0.5) ? 'accessory' : 'weapon', save.level + 1, 'wind');
+
+      const key = `poi_${save.mapId}_hunter_hut_opened`;
+      const opened = save.inventory.some((x) => x.id === key);
+      if (!opened) {
+        save = { ...save, inventory: [...save.inventory, { id: key, name: '猎人暗号', kind: 'flag' }] };
+        logs = pushLog(logs, '你敲了敲门。猎人打量你一眼，悄悄推开暗门：隐藏商店开启。');
+      } else {
+        logs = pushLog(logs, '猎人小屋的暗门仍开着，你可以继续交易。');
+      }
+
+      const prices = {
+        potion: 12,
+        bandage: 14,
+        gear: 28,
+      };
+
+      // Auto-buy micro flow (keeps UI simple): if enough gold, you can get one thing per visit.
+      if (save.gold >= prices.gear && chance(r0, 0.35)) {
+        save = { ...save, gold: save.gold - prices.gear, inventory: [offerGear, ...save.inventory] };
+        logs = pushLog(logs, `你从隐藏货架挑走一件装备（-${prices.gear}金币）：${offerGear.name}。`);
+      } else if (save.gold >= prices.bandage && chance(r0, 0.5)) {
+        const heal = rngInt(r0, 10, 18);
+        save = { ...save, gold: save.gold - prices.bandage, hp: Math.min(save.hpMax, save.hp + heal) };
+        logs = pushLog(logs, `你买到一卷绷带（-${prices.bandage}金币），当场处理伤口：HP +${heal}。`);
+      } else if (save.gold >= prices.potion) {
+        // Add potion (stack).
+        const inv = [...save.inventory];
+        const ex = inv.find((x) => x.id === 'potion_small');
+        if (ex && ex.kind === 'potion') ex.qty = (ex.qty ?? 1) + 1;
+        else inv.push({ id: 'potion_small', name: '小型血瓶', kind: 'potion', qty: 1 });
+        save = { ...save, gold: save.gold - prices.potion, inventory: inv };
+        logs = pushLog(logs, `你从猎人手里买到一瓶血瓶（-${prices.potion}金币）。`);
+      } else {
+        logs = pushLog(logs, '你掏了掏口袋……金币不够，猎人耸耸肩。');
+      }
+
       return { save, logs };
     }
 
@@ -281,15 +319,55 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
       return { save, logs };
     }
 
-    if (roll < region.encounterRate + 0.28) {
-      if (chance(r, 0.5)) {
-        const dmg = rngInt(r, 3, 9);
-        save = { ...save, hp: Math.max(0, save.hp - dmg) };
-        logs = pushLog(logs, `你踩中陷阱，失去 ${dmg} HP。`);
+    const merchantGate = region.encounterRate + 0.18;
+    const trapGate = merchantGate + region.merchantRate;
+    const miscGate = trapGate + region.trapRate;
+
+    // Mysterious merchant.
+    if (roll < trapGate) {
+      const buy = chance(r, 0.6);
+      const offer = chance(r, 0.5)
+        ? { kind: 'potion' as const, price: 13, label: '小型血瓶' }
+        : { kind: 'gear' as const, price: 30, label: '一件随机装备' };
+
+      if (!buy) {
+        logs = pushLog(logs, '神秘商人从雾里探出头，见你沉默便又缩了回去。');
+        return { save, logs };
+      }
+
+      if (save.gold < offer.price) {
+        logs = pushLog(logs, `神秘商人展示了“${offer.label}”（${offer.price}金币），但你付不起。`);
+        return { save, logs };
+      }
+
+      if (offer.kind === 'potion') {
+        const inv = [...save.inventory];
+        const ex = inv.find((x) => x.id === 'potion_small');
+        if (ex && ex.kind === 'potion') ex.qty = (ex.qty ?? 1) + 1;
+        else inv.push({ id: 'potion_small', name: '小型血瓶', kind: 'potion', qty: 1 });
+        save = { ...save, gold: save.gold - offer.price, inventory: inv };
+        logs = pushLog(logs, `你向神秘商人购买：${offer.label}（-${offer.price}金币）。`);
+        return { save, logs };
+      }
+
+      const slot = chance(r, 0.33) ? 'weapon' : chance(r, 0.5) ? 'armor' : 'accessory';
+      const gear = rollGear(save.seed + next.x * 31 + next.y * 97 + 8080, slot, save.level + 1, playerElement(save));
+      save = { ...save, gold: save.gold - offer.price, inventory: [gear, ...save.inventory] };
+      logs = pushLog(logs, `你向神秘商人购买：${gear.name}（-${offer.price}金币）。`);
+      return { save, logs };
+    }
+
+    // Hidden trap: agility check + bleed.
+    if (roll < miscGate) {
+      const ps = computePlayerStats(save);
+      const dc = save.mapId === 'ember_caverns' ? 12 : save.mapId === 'whispering_forest' ? 10 : 8;
+      const check = ps.agi + rngInt(r, 1, 12);
+      if (check >= dc) {
+        logs = pushLog(logs, '你发现地面异常，及时避开：敏捷判定成功。');
       } else {
-        const heal = rngInt(r, 4, 10);
-        save = { ...save, hp: Math.min(save.hpMax, save.hp + heal) };
-        logs = pushLog(logs, `你发现一处泉水，恢复 ${heal} HP。`);
+        const dmg = rngInt(r, 3, 8) + (save.mapId === 'ember_caverns' ? 2 : 0);
+        save = { ...save, hp: Math.max(0, save.hp - dmg), statuses: pushOrRefreshStatus(save.statuses, { id: 'bleed', turns: 3, dmgPerTurn: 3 }) };
+        logs = pushLog(logs, `你踩中隐蔽陷阱，失去 ${dmg} HP，并进入流血（3回合）。`);
       }
 
       if (save.hp <= 0) {

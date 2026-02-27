@@ -12,6 +12,10 @@ export type RegionDef = {
   encounterRate: number;
   rewardGold: { min: number; max: number };
 
+  // Flavor difficulty knobs.
+  trapRate: number;
+  merchantRate: number;
+
   monsterPool: {
     normal: string[];
     elite: string[];
@@ -31,6 +35,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     ],
     encounterRate: 0.38,
     rewardGold: { min: 4, max: 12 },
+    trapRate: 0.10,
+    merchantRate: 0.06,
     monsterPool: {
       normal: ['slime'],
       elite: ['slime_splitter'],
@@ -48,6 +54,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     ],
     encounterRate: 0.45,
     rewardGold: { min: 8, max: 18 },
+    trapRate: 0.14,
+    merchantRate: 0.08,
     monsterPool: {
       normal: ['goblin', 'bat'],
       elite: ['goblin_brute', 'forest_spider'],
@@ -62,6 +70,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     pois: [{ id: 'lava_anvil', pos: { x: 5, y: 5 }, nameZh: '熔岩铁砧' }],
     encounterRate: 0.50,
     rewardGold: { min: 12, max: 26 },
+    trapRate: 0.18,
+    merchantRate: 0.05,
     monsterPool: {
       normal: ['cave_bat', 'ember_slime'],
       elite: ['ember_golem'],
