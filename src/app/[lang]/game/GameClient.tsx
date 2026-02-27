@@ -5,8 +5,10 @@ import { useEffect, useMemo, useState } from 'react';
 
 import type { BattleState, Player } from '@/lib/types';
 
-import { JOB_LABEL, MAP_LABEL } from '@/lib/content';
-import { newGame, startBattle, stepBattle, type PlayerAction, recalcPlayer } from '@/lib/game';
+import { getDict } from '@/lib/i18n/dict';
+import { isLang, type Lang } from '@/lib/i18n/i18n';
+import { JOB_LABEL, MAP_LABEL } from '@/lib/i18n/labels';
+import { newGame, recalcPlayer, startBattle, stepBattle, type PlayerAction } from '@/lib/game';
 import { clearSave, loadSave, writeSave } from '@/lib/save';
 
 type Screen = 'camp' | 'battle' | 'inventory' | 'map';
@@ -21,15 +23,20 @@ function bar(p: number) {
   return `${'█'.repeat(filled)}${'░'.repeat(18 - filled)}`;
 }
 
-export function GameClient() {
-  const [player, setPlayer] = useState<Player | null>(null);
+function otherLang(lang: Lang): Lang {
+  return lang === 'zh' ? 'en' : 'zh';
+}
+
+export function GameClient(props: { lang: Lang }) {
+  const lang = props.lang;
+  const t = getDict(lang);
+
+  const [player, setPlayer] = useState<Player | null>(() => {
+    const saved = loadSave();
+    return saved ? recalcPlayer(saved) : null;
+  });
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [screen, setScreen] = useState<Screen>('camp');
-
-  useEffect(() => {
-    const saved = loadSave();
-    if (saved) setPlayer(recalcPlayer(saved));
-  }, []);
 
   useEffect(() => {
     if (player) writeSave(player);
@@ -48,11 +55,8 @@ export function GameClient() {
   }
 
   function onNew() {
-    const name = window.prompt('Name your adventurer:', 'Adventurer') ?? 'Adventurer';
-    const job = (window.prompt(
-      'Pick a job: guard / ranger / warlock / cleric / rogue / scholar',
-      'guard',
-    ) ?? 'guard') as Player['job'];
+    const name = window.prompt(t.prompts.name, lang === 'zh' ? '冒险者' : 'Adventurer') ?? 'Adventurer';
+    const job = (window.prompt(t.prompts.pickJob, 'guard') ?? 'guard') as Player['job'];
 
     const p = newGame(name, job);
     setBattle(null);
@@ -61,7 +65,7 @@ export function GameClient() {
   }
 
   function onDeleteSave() {
-    if (!window.confirm('Delete local save?')) return;
+    if (!window.confirm(t.prompts.deleteSave)) return;
     clearSave();
     setBattle(null);
     setPlayer(null);
@@ -83,98 +87,103 @@ export function GameClient() {
     setBattle(next.battle);
   }
 
+  const alt = otherLang(lang);
+
   return (
     <div className="wrap">
       <header className="top">
         <div className="brand">
-          <div className="title">Mist Ring: Text RPG</div>
-          <div className="sub">Local save · Turn-based · MVP2 foundation</div>
+          <div className="title">{t.appName}</div>
+          <div className="sub">{lang === 'zh' ? '本地存档 · 回合制 · MVP2底座' : 'Local save · Turn-based · MVP2 foundation'}</div>
         </div>
         <div className="nav">
           <button className={screen === 'camp' ? 'tab on' : 'tab'} onClick={() => setScreen('camp')}>
-            Camp
+            {t.nav.camp}
           </button>
           <button
             className={screen === 'map' ? 'tab on' : 'tab'}
             onClick={() => setScreen('map')}
             disabled={!player}
           >
-            Map
+            {t.nav.map}
           </button>
           <button
             className={screen === 'inventory' ? 'tab on' : 'tab'}
             onClick={() => setScreen('inventory')}
             disabled={!player}
           >
-            Gear
+            {t.nav.gear}
           </button>
           <button
             className={screen === 'battle' ? 'tab on' : 'tab'}
             onClick={() => setScreen('battle')}
             disabled={!battle}
           >
-            Battle
+            {t.nav.battle}
           </button>
-          <Link className="tab link" href="/">
-            Home
+          <Link className="tab link" href={`/${lang}`}>
+            {t.nav.home}
+          </Link>
+          <Link className="tab link" href={`/${alt}/game`} prefetch={false}>
+            {alt === 'zh' ? '中文' : 'EN'}
           </Link>
         </div>
       </header>
 
       <section className="grid">
         <aside className="panel">
-          <div className="h">Status</div>
+          <div className="h">{t.status.title}</div>
           {!player ? (
-            <div className="muted">No local save loaded.</div>
+            <div className="muted">{t.status.noSave}</div>
           ) : (
             <>
               <div className="kv">
-                <span className="k">Name</span>
+                <span className="k">{t.status.name}</span>
                 <span className="v">{player.name}</span>
               </div>
               <div className="kv">
-                <span className="k">Job</span>
-                <span className="v">{JOB_LABEL[player.job]}</span>
+                <span className="k">{t.status.job}</span>
+                <span className="v">{JOB_LABEL[lang][player.job]}</span>
               </div>
               <div className="kv">
-                <span className="k">Level</span>
+                <span className="k">{t.status.level}</span>
                 <span className="v">
                   {player.level} (EXP {player.exp}/{player.expToNext})
                 </span>
               </div>
               <div className="kv">
-                <span className="k">HP</span>
+                <span className="k">{t.status.hp}</span>
                 <span className="v mono">{hpLine}</span>
               </div>
               <div className="kv">
-                <span className="k">Gold</span>
+                <span className="k">{t.status.gold}</span>
                 <span className="v">{player.gold}g</span>
               </div>
               <div className="kv">
-                <span className="k">Map</span>
-                <span className="v">{MAP_LABEL[player.world.mapId]}</span>
+                <span className="k">{t.status.map}</span>
+                <span className="v">{MAP_LABEL[lang][player.world.mapId]}</span>
               </div>
             </>
           )}
 
           <div className="actions">
             <button className="btn" onClick={onNew}>
-              New Game
+              {t.status.newGame}
             </button>
             <button className="btn" onClick={onStartBattle} disabled={!player}>
-              Fight
+              {t.status.fight}
             </button>
             <button className="btn danger" onClick={onDeleteSave}>
-              Delete Save
+              {t.status.deleteSave}
             </button>
           </div>
         </aside>
 
         <main className="panel main">
-          {screen === 'camp' ? <Camp player={player} /> : null}
-          {screen === 'map' ? <MapView player={player} /> : null}
-          {screen === 'inventory' ? <GearView player={player} /> : null}
-          {screen === 'battle' ? <BattleView battle={battle} onAct={act} /> : null}
+          {screen === 'camp' ? <Camp t={t} player={player} /> : null}
+          {screen === 'map' ? <MapView t={t} player={player} lang={lang} /> : null}
+          {screen === 'inventory' ? <GearView t={t} player={player} /> : null}
+          {screen === 'battle' ? <BattleView t={t} battle={battle} onAct={act} /> : null}
         </main>
       </section>
 
@@ -183,70 +192,69 @@ export function GameClient() {
   );
 }
 
-function Camp(props: { player: Player | null }) {
+function Camp(props: { t: ReturnType<typeof getDict>; player: Player | null }) {
   const p = props.player;
+  const t = props.t;
   return (
     <>
-      <div className="h">Camp</div>
-      {!p ? (
-        <p className="p">Start a new game to generate a local save.</p>
-      ) : (
-        <>
-          <p className="p">
-            The camp sits at the edge of the Borderlands. The fog pulses beyond the lanterns, waiting.
-          </p>
-          <div className="callout">
-            MVP2 scope note: maps, gear slots, jobs are defined; content depth (events, item pools, skills) will
-            be expanded next.
-          </div>
-        </>
-      )}
+      <div className="h">{t.camp.title}</div>
+      {!p ? <p className="p">{t.camp.noSave}</p> : <>
+        <p className="p">{t.camp.text}</p>
+        <div className="callout">{t.camp.note}</div>
+      </>}
     </>
   );
 }
 
-function MapView(props: { player: Player | null }) {
+function MapView(props: { t: ReturnType<typeof getDict>; player: Player | null; lang: Lang }) {
   const p = props.player;
+  const t = props.t;
+  const lang = props.lang;
+
   return (
     <>
-      <div className="h">Map</div>
+      <div className="h">{t.mapView.title}</div>
       {!p ? (
-        <p className="p">No save.</p>
+        <p className="p">{t.mapView.noSave}</p>
       ) : (
         <>
           <p className="p">
-            Current region: <span className="strong">{MAP_LABEL[p.world.mapId]}</span> · Node:{' '}
+            {t.mapView.currentRegion}: <span className="strong">{MAP_LABEL[lang][p.world.mapId]}</span> · {t.mapView.node}:{' '}
             <span className="mono">{p.world.nodeId}</span>
           </p>
           <div className="map">
-            <div className="node on">Camp</div>
-            <div className="node">Fork</div>
-            <div className="node">Ruins</div>
-            <div className="node">Den</div>
+            <div className="node on">{lang === 'zh' ? '营地' : 'Camp'}</div>
+            <div className="node">{lang === 'zh' ? '岔路' : 'Fork'}</div>
+            <div className="node">{lang === 'zh' ? '遗迹' : 'Ruins'}</div>
+            <div className="node">{lang === 'zh' ? '巢穴' : 'Den'}</div>
           </div>
-          <div className="muted">(Placeholder node graph; next step will make this procedural + event-driven.)</div>
+          <div className="muted">{t.mapView.placeholder}</div>
         </>
       )}
     </>
   );
 }
 
-function GearView(props: { player: Player | null }) {
+function GearView(props: { t: ReturnType<typeof getDict>; player: Player | null }) {
   const p = props.player;
+  const t = props.t;
+
   return (
     <>
-      <div className="h">Gear</div>
+      <div className="h">{t.gear.title}</div>
       {!p ? (
-        <p className="p">No save.</p>
+        <p className="p">{t.gear.noSave}</p>
       ) : (
         <>
-          <div className="muted">Inventory ({p.inventory.length})</div>
+          <div className="muted">
+            {t.gear.inventory} ({p.inventory.length})
+          </div>
           <div className="list">
             {p.inventory.map((it) => (
               <div key={it.id} className="item">
                 <div className="row">
                   <div className="strong">{it.name}</div>
-                  <div className="tag">{it.rarity}</div>
+                  <div className="tag">{t.gear.rarity[it.rarity]}</div>
                 </div>
                 <div className="muted small">
                   {it.slot} · req Lv.{it.levelReq} · +
@@ -257,20 +265,26 @@ function GearView(props: { player: Player | null }) {
               </div>
             ))}
           </div>
-          <div className="muted">(Next: equip/unequip, drops, shop, crafting, random affixes.)</div>
+          <div className="muted">{t.gear.next}</div>
         </>
       )}
     </>
   );
 }
 
-function BattleView(props: { battle: BattleState | null; onAct: (a: PlayerAction) => void }) {
+function BattleView(props: {
+  t: ReturnType<typeof getDict>;
+  battle: BattleState | null;
+  onAct: (a: PlayerAction) => void;
+}) {
   const b = props.battle;
+  const t = props.t;
+
   return (
     <>
-      <div className="h">Battle</div>
+      <div className="h">{t.battle.title}</div>
       {!b ? (
-        <p className="p">No active battle.</p>
+        <p className="p">{t.battle.noBattle}</p>
       ) : (
         <>
           <div className="battleTop">
@@ -284,13 +298,13 @@ function BattleView(props: { battle: BattleState | null; onAct: (a: PlayerAction
 
           <div className="controls">
             <button className="btn" onClick={() => props.onAct('attack')} disabled={b.status !== 'inBattle'}>
-              Attack
+              {t.battle.attack}
             </button>
             <button className="btn" onClick={() => props.onAct('defend')} disabled={b.status !== 'inBattle'}>
-              Defend
+              {t.battle.defend}
             </button>
             <button className="btn" onClick={() => props.onAct('escape')} disabled={b.status !== 'inBattle'}>
-              Escape
+              {t.battle.escape}
             </button>
           </div>
 
@@ -504,3 +518,7 @@ const css = String.raw`
     .grid { grid-template-columns: 1fr; }
   }
 `;
+
+export function parseLang(v: string): Lang {
+  return (isLang(v) ? v : 'en') as Lang;
+}

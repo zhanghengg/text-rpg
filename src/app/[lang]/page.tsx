@@ -1,41 +1,61 @@
 import Link from 'next/link';
 
-export default function HomePage() {
+import { getDict } from '@/lib/i18n/dict';
+import { isLang, type Lang } from '@/lib/i18n/i18n';
+
+function otherLang(lang: Lang): Lang {
+  return lang === 'zh' ? 'en' : 'zh';
+}
+
+export default async function HomePage(props: { params: Promise<{ lang: string }> }) {
+  const params = await props.params;
+  const lang = (isLang(params.lang) ? params.lang : 'en') as Lang;
+  const t = getDict(lang);
+
+  const alt = otherLang(lang);
+
   return (
     <div className="wrap">
       <div className="hero">
-        <div className="badge">Mist Ring</div>
-        <h1 className="h1">A turn-based text RPG about fog, steel, and bad decisions.</h1>
+        <div className="topRow">
+          <div className="badge">Mist Ring</div>
+          <Link className="lang" href={`/${alt}`} prefetch={false}>
+            {alt === 'zh' ? '中文' : 'EN'}
+          </Link>
+        </div>
+
+        <h1 className="h1">{t.tagline}</h1>
         <p className="p">
-          Pick a job. Explore node maps. Fight monsters. Level up. Farm gear. Everything is saved locally in your
-          browser.
+          {lang === 'zh'
+            ? '选择职业，探索节点地图，回合制战斗，打怪升级，刷装备。存档保存在浏览器本地。'
+            : 'Pick a job. Explore node maps. Fight turn-based battles. Level up. Farm gear. Saved locally in your browser.'}
         </p>
 
         <div className="cta">
-          <Link className="btn primary" href="/game">
-            Enter Game
+          <Link className="btn primary" href={`/${lang}/game`}>
+            {t.enterGame}
           </Link>
           <a className="btn" href="https://github.com/zhanghengg/text-rpg" target="_blank" rel="noreferrer">
-            GitHub
+            {t.github}
           </a>
         </div>
 
         <div className="grid">
           <div className="card">
-            <div className="k">Jobs</div>
-            <div className="v">Guard · Ranger · Warlock · Cleric · Rogue · Scholar</div>
+            <div className="k">{t.jobs}</div>
+            <div className="v">{t.jobsValue}</div>
           </div>
           <div className="card">
-            <div className="k">Maps</div>
-            <div className="v">Borderlands · Mistwood · Old Mine · Rift Corridor</div>
+            <div className="k">{t.maps}</div>
+            <div className="v">{t.mapsValue}</div>
           </div>
           <div className="card">
-            <div className="k">Loop</div>
-            <div className="v">Explore → Battle → Loot → Upgrade → Push deeper</div>
+            <div className="k">{t.loop}</div>
+            <div className="v">{t.loopValue}</div>
           </div>
         </div>
 
-        <div className="foot">MVP2 foundation build: systems first, content next.</div>
+        <div className="foot">{t.footer}</div>
       </div>
 
       <style>{css}</style>
@@ -78,6 +98,13 @@ const css = String.raw`
     backdrop-filter: blur(14px);
   }
 
+  .topRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
   .badge {
     display: inline-flex;
     padding: 7px 12px;
@@ -89,6 +116,20 @@ const css = String.raw`
     font-weight: 800;
     font-size: 12px;
   }
+
+  .lang {
+    display: inline-flex;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    color: rgba(255,255,255,0.86);
+    font-weight: 900;
+    font-size: 12px;
+    transition: transform 160ms ease, background 160ms ease;
+  }
+
+  .lang:hover { transform: translateY(-1px); background: rgba(255,255,255,0.08); }
 
   .h1 {
     font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;

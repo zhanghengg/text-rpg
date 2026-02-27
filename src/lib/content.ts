@@ -1,20 +1,4 @@
-import type { Enemy, Item, JobId, MapId } from './types';
-
-export const JOB_LABEL: Record<JobId, string> = {
-  guard: 'Guard',
-  ranger: 'Ranger',
-  warlock: 'Warlock',
-  cleric: 'Cleric',
-  rogue: 'Rogue',
-  scholar: 'Scholar',
-};
-
-export const MAP_LABEL: Record<MapId, string> = {
-  borderlands: 'Borderlands',
-  mistwood: 'Mistwood Paths',
-  oldmine: 'Old Mine',
-  riftcorridor: 'Rift Corridor',
-};
+import type { Enemy, Item, JobId } from './types';
 
 export const STARTER_ITEMS: Record<JobId, Item[]> = {
   guard: [
