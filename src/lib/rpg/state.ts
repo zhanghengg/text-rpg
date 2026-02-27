@@ -1,5 +1,7 @@
 export type GameMode = 'CAMP' | 'EXPLORING' | 'COMBAT' | 'SHOP';
 
+export type RegionId = 'breeze_plains' | 'whispering_forest' | 'ember_caverns';
+
 export type XY = { x: number; y: number };
 
 export type LogEntry = {
@@ -49,7 +51,7 @@ export type RpgSave = {
   gold: number;
 
   mode: GameMode;
-  mapId: string | null;
+  mapId: RegionId | null;
   pos: XY;
 
   inventory: RpgItem[];
@@ -69,7 +71,7 @@ export type Action =
   | { type: 'SHOP_BUY'; itemId: string }
   | { type: 'SHOP_SELL'; itemId: string }
   | { type: 'SHOP_LEAVE' }
-  | { type: 'CAMP_START_EXPLORE'; mapId: string }
+  | { type: 'CAMP_START_EXPLORE'; mapId: RegionId }
   | { type: 'MOVE'; dir: 'N' | 'S' | 'W' | 'E' }
   | { type: 'COMBAT_ATTACK' }
   | { type: 'COMBAT_ESCAPE' }

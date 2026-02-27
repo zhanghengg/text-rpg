@@ -48,7 +48,15 @@ export function RpgClient(props: { lang: Lang }) {
     const loc =
       save.mode === 'CAMP'
         ? '营地'
-        : `${save.mapId === 'slime_plains' ? '史莱姆平原' : '幽暗森林'} (${save.pos.x},${save.pos.y})`;
+        : `${
+            save.mapId === 'breeze_plains'
+              ? '微风平原'
+              : save.mapId === 'whispering_forest'
+                ? '絮语森林'
+                : save.mapId === 'ember_caverns'
+                  ? '余烬洞窟'
+                  : '荒野'
+          } (${save.pos.x},${save.pos.y})`;
     return loc;
   }, [save.mode, save.mapId, save.pos.x, save.pos.y]);
 
@@ -82,11 +90,14 @@ export function RpgClient(props: { lang: Lang }) {
           <button className="btn" onClick={() => dispatch({ type: 'CAMP_OPEN_SHOP' })}>
             商店
           </button>
-          <button className="btn" onClick={() => dispatch({ type: 'CAMP_START_EXPLORE', mapId: 'slime_plains' })}>
-            出城探索（史莱姆平原）
+          <button className="btn" onClick={() => dispatch({ type: 'CAMP_START_EXPLORE', mapId: 'breeze_plains' })}>
+            出城探索（微风平原）
           </button>
-          <button className="btn" onClick={() => dispatch({ type: 'CAMP_START_EXPLORE', mapId: 'dark_forest' })}>
-            出城探索（幽暗森林）
+          <button className="btn" onClick={() => dispatch({ type: 'CAMP_START_EXPLORE', mapId: 'whispering_forest' })}>
+            出城探索（絮语森林）
+          </button>
+          <button className="btn" onClick={() => dispatch({ type: 'CAMP_START_EXPLORE', mapId: 'ember_caverns' })}>
+            出城探索（余烬洞窟）
           </button>
         </>
       );

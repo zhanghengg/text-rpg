@@ -1,5 +1,7 @@
 import type { Action, LogEntry, RpgSave } from './state';
 
+import { inBounds, poiAt, regionOf } from './regions';
+
 import { chance, mulberry32, rngInt } from './rng';
 import { expToNext, makeEnemy, recalcVitals } from './rules';
 import { SHOP_STOCK, sellPrice } from './shop';
@@ -50,10 +52,6 @@ export function initialRuntime(): RpgRuntime {
       { id: 'hint', t: Date.now(), text: '提示：从营地出发探索，移动会触发遭遇、物资或事件。' },
     ],
   };
-}
-
-function clamp(n: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, n));
 }
 
 function levelUpIfNeeded(rt: RpgRuntime): RpgRuntime {
@@ -197,43 +195,85 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
 
   if (action.type === 'CAMP_START_EXPLORE') {
     if (save.mode !== 'CAMP') return rt;
-    save = { ...save, mode: 'EXPLORING', mapId: action.mapId, pos: { x: 0, y: 0 } };
-    logs = pushLog(logs, `你离开营地，进入区域：${action.mapId === 'slime_plains' ? '史莱姆平原' : '幽暗森林'}（0,0）。`);
+
+    const mapId = action.mapId as unknown as RpgSave['mapId'];
+    if (!mapId) return rt;
+    const region = regionOf(mapId);
+
+    save = { ...save, mode: 'EXPLORING', mapId, pos: { x: 0, y: 0 } };
+    logs = pushLog(logs, `你离开营地，进入区域：${region.nameZh}（0,0）。`);
     return { save, logs };
   }
 
   if (action.type === 'MOVE') {
-    if (save.mode !== 'EXPLORING') return rt;
+    if (save.mode !== 'EXPLORING' || !save.mapId) return rt;
 
-    const size = 5;
+    const region = regionOf(save.mapId);
     const dx = action.dir === 'E' ? 1 : action.dir === 'W' ? -1 : 0;
     const dy = action.dir === 'S' ? 1 : action.dir === 'N' ? -1 : 0;
 
-    const nx = clamp(save.pos.x + dx, 0, size - 1);
-    const ny = clamp(save.pos.y + dy, 0, size - 1);
-
-    if (nx === save.pos.x && ny === save.pos.y) {
+    const next = { x: save.pos.x + dx, y: save.pos.y + dy };
+    if (!inBounds(save.mapId, next)) {
       return { save, logs: pushLog(logs, '你撞上了边界，走不动。') };
     }
 
-    save = { ...save, pos: { x: nx, y: ny } };
-    logs = pushLog(logs, `你移动到 (${nx},${ny})。`);
+    save = { ...save, pos: next };
+    logs = pushLog(logs, `你移动到 (${next.x},${next.y})。`);
 
-    const r = mulberry32(save.seed + nx * 31 + ny * 97);
+    const poi = poiAt(save.mapId!, next);
+    if (poi?.id === 'campfire') {
+      const key = `poi_${save.mapId}_campfire_used`;
+      const used = save.inventory.some((x) => x.id === key);
+      if (!used) {
+        save = recalcVitals({ ...save, hp: save.hpMax, mp: save.mpMax, inventory: [...save.inventory, { id: key, name: '营火记忆', kind: 'gear' }] });
+        logs = pushLog(logs, '你在营火旁坐下，免费恢复一次 HP/MP。');
+      } else {
+        logs = pushLog(logs, '营火已经熄灭，只剩余温。');
+      }
+      return { save, logs };
+    }
+
+    if (poi?.id === 'slime_throne') {
+      return enterCombat({ save, logs }, '你踏入王座之地，黏液如潮水般翻涌。');
+    }
+
+    if (poi?.id === 'hunter_hut') {
+      logs = pushLog(logs, '你发现一间猎人小屋。门后似乎有隐藏的货架（暂未开放）。');
+      return { save, logs };
+    }
+
+    if (poi?.id === 'spider_nest') {
+      return enterCombat({ save, logs }, '你闯入蜘蛛巢穴。腐叶下的视线齐刷刷落在你身上。');
+    }
+
+    if (poi?.id === 'lava_anvil') {
+      const key = `poi_${save.mapId}_lava_anvil_used`;
+      const used = save.inventory.some((x) => x.id === key);
+      if (!used) {
+        const g = rngInt(mulberry32(save.seed + next.x * 31 + next.y * 97), 12, 22);
+        save = { ...save, gold: save.gold + g, inventory: [...save.inventory, { id: key, name: '铁砧印记', kind: 'gear' }] };
+        logs = pushLog(logs, `熔岩铁砧的火光映照你的武器。你临时强化并找到战利品：+${g}金币（升级系统待实现，仅可触发一次）。`);
+      } else {
+        logs = pushLog(logs, '熔岩铁砧已经冷却。');
+      }
+      return { save, logs };
+    }
+
+    const r = mulberry32(save.seed + next.x * 31 + next.y * 97 + region.w * 1000 + region.h * 2000);
     const roll = r();
 
-    if (roll < 0.40) {
+    if (roll < region.encounterRate) {
       return enterCombat({ save, logs }, '迷雾翻涌，脚下传来急促的声响。');
     }
 
-    if (roll < 0.60) {
-      const g = rngInt(r, 4, 12);
+    if (roll < region.encounterRate + 0.18) {
+      const g = rngInt(r, region.rewardGold.min, region.rewardGold.max);
       save = { ...save, gold: save.gold + g };
       logs = pushLog(logs, `你找到一些物资：+${g}金币。`);
       return { save, logs };
     }
 
-    if (roll < 0.70) {
+    if (roll < region.encounterRate + 0.28) {
       if (chance(r, 0.5)) {
         const dmg = rngInt(r, 3, 9);
         save = { ...save, hp: Math.max(0, save.hp - dmg) };
