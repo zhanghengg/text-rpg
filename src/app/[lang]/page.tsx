@@ -32,7 +32,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
         </p>
 
         <div className="cta">
-          <Link className="btn primary" href={`/${lang}/game`}>
+          <Link className="btn primary" href={`/${lang}/rpg`}>
             {t.enterGame}
           </Link>
           <a className="btn" href="https://github.com/zhanghengg/text-rpg" target="_blank" rel="noreferrer">
