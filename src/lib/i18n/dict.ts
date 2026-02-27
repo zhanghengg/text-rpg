@@ -59,6 +59,8 @@ export type Dict = {
     title: string;
     noSave: string;
     inventory: string;
+    equip: string;
+    unequip: string;
     next: string;
     rarity: {
       common: string;
@@ -143,7 +145,9 @@ const en: Dict = {
     title: 'Gear',
     noSave: 'No save.',
     inventory: 'Inventory',
-    next: '(Next: equip/unequip, drops, shop, crafting, random affixes.)',
+    equip: 'Equip',
+    unequip: 'Unequip',
+    next: '(Next: sell, compare, crafting, random affixes.)',
     rarity: {
       common: 'common',
       uncommon: 'uncommon',
@@ -227,7 +231,9 @@ const zh: Dict = {
     title: '装备',
     noSave: '没有存档。',
     inventory: '背包',
-    next: '（下一步：穿脱装备、掉落、商店、锻造、随机词条。）',
+    equip: '装备',
+    unequip: '卸下',
+    next: '（下一步：出售、对比、锻造、随机词条。）',
     rarity: {
       common: '普通',
       uncommon: '精良',

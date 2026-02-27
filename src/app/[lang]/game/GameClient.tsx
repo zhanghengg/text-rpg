@@ -9,6 +9,8 @@ import { getDict } from '@/lib/i18n/dict';
 import { isLang, type Lang } from '@/lib/i18n/i18n';
 import { JOB_LABEL, MAP_LABEL } from '@/lib/i18n/labels';
 import { newGame, recalcPlayer, startBattle, stepBattle, type PlayerAction } from '@/lib/game';
+import { canEquip, equipItem, unequipSlot } from '@/lib/gear/gear';
+import type { GearSlot } from '@/lib/types';
 import { clearSave, loadSave, writeSave } from '@/lib/save';
 
 type Screen = 'camp' | 'battle' | 'inventory';
@@ -177,7 +179,9 @@ export function GameClient(props: { lang: Lang }) {
 
         <main className="panel main">
           {screen === 'camp' ? <Camp t={t} player={player} /> : null}
-          {screen === 'inventory' ? <GearView t={t} player={player} /> : null}
+          {screen === 'inventory' ? (
+            <GearView t={t} player={player} lang={lang} onPlayer={(p) => setPlayer(p)} />
+          ) : null}
           {screen === 'battle' ? <BattleView t={t} battle={battle} onAct={act} /> : null}
         </main>
       </section>
@@ -201,9 +205,52 @@ function Camp(props: { t: ReturnType<typeof getDict>; player: Player | null }) {
   );
 }
 
-function GearView(props: { t: ReturnType<typeof getDict>; player: Player | null }) {
+function GearView(props: {
+  t: ReturnType<typeof getDict>;
+  player: Player | null;
+  lang: Lang;
+  onPlayer: (p: Player) => void;
+}) {
   const p = props.player;
   const t = props.t;
+
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  function onEquip(id: string) {
+    if (!p || busy) return;
+    setToast(null);
+    setBusy(true);
+    try {
+      const it = p.inventory.find((x) => x.id === id);
+      if (!it) return;
+
+      const ok = canEquip(p, it);
+      if (!ok.ok) {
+        setToast(props.lang === 'zh' ? '等级不足。' : 'Level too low.');
+        return;
+      }
+
+      const res = equipItem(p, it);
+      props.onPlayer(res.player);
+      setToast(props.lang === 'zh' ? `已装备：${it.name}` : `Equipped: ${it.name}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function onUnequip(slot: string) {
+    if (!p || busy) return;
+    setToast(null);
+    setBusy(true);
+    try {
+      const res = unequipSlot(p, slot as GearSlot);
+      props.onPlayer(res.player);
+      if (res.removed) setToast(props.lang === 'zh' ? `已卸下：${res.removed.name}` : `Unequipped: ${res.removed.name}`);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <>
@@ -212,9 +259,26 @@ function GearView(props: { t: ReturnType<typeof getDict>; player: Player | null 
         <p className="p">{t.gear.noSave}</p>
       ) : (
         <>
-          <div className="muted">
-            {t.gear.inventory} ({p.inventory.length})
+          <div className="muted">{t.gear.inventory} ({p.inventory.length})</div>
+
+          <div className="equipGrid">
+            {Object.entries(p.equipment).map(([slot, it]) =>
+              it ? (
+                <div key={slot} className="slotCard">
+                  <div className="row">
+                    <div className="strong">{slot}</div>
+                    <button className="miniBtn" onClick={() => onUnequip(slot)} disabled={busy}>
+                      {t.gear.unequip}
+                    </button>
+                  </div>
+                  <div className="muted small">{it.name}</div>
+                </div>
+              ) : null,
+            )}
           </div>
+
+          {toast ? <div className="toast">{toast}</div> : null}
+
           <div className="list">
             {p.inventory.map((it) => (
               <div key={it.id} className="item">
@@ -228,9 +292,15 @@ function GearView(props: { t: ReturnType<typeof getDict>; player: Player | null 
                     .map(([k, v]) => `${k}:${v}`)
                     .join('  ')}
                 </div>
+                <div className="row" style={{ marginTop: 8 }}>
+                  <button className="miniBtn" onClick={() => onEquip(it.id)} disabled={busy}>
+                    {t.gear.equip}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
+
           <div className="muted">{t.gear.next}</div>
         </>
       )}
@@ -437,6 +507,44 @@ const css = String.raw`
   }
 
   .node.on { border-color: rgba(112,246,255,0.22); background: rgba(112,246,255,0.08); }
+
+  .equipGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 10px 0 10px;
+  }
+
+  .slotCard {
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.20);
+    padding: 10px 12px;
+  }
+
+  .miniBtn {
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.18);
+    color: rgba(255,255,255,0.84);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 900;
+    transition: transform 160ms ease, background 160ms ease;
+  }
+
+  .miniBtn:hover { transform: translateY(-1px); background: rgba(255,255,255,0.08); }
+  .miniBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .toast {
+    margin-top: 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.22);
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
 
   .list {
     display: grid;
