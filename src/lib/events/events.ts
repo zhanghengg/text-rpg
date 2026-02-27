@@ -124,28 +124,28 @@ const EVENT_POOL: EventTpl[] = [
     ],
   },
   {
-    id: 'ev_auto_202602271146',
-    titleEn: 'A Note Written in Ash',
-    titleZh: '灰烬写下的便签',
-    bodyEn: 'Someone left a message on stone. The fog tries to erase it as you read.',
-    bodyZh: '有人在石头上留了字。你阅读时，迷雾试图把它擦掉。',
+    id: 'ev_auto_shrine',
+    titleEn: 'A Half-Buried Shrine',
+    titleZh: '半埋的祠龛',
+    bodyEn: 'Stone teeth peek from the earth. A shrine, old enough that the fog has forgotten its name.',
+    bodyZh: '石头的“牙齿”从泥土里露出。那是一座祠龛，古老到连迷雾都快忘了它的名字。',
     options: [
       {
-        id: 'pocket',
-        labelEn: 'Pocket the charcoal',
-        labelZh: '收走木炭',
-        outcomeEn: { text: 'You keep the charcoal. It still feels warm. +6g', goldDelta: 6 },
-        outcomeZh: { text: '你把木炭收起来，它仍带余温。+6金币', goldDelta: 6 },
+        id: 'offer',
+        labelEn: 'Leave an offering (5g)',
+        labelZh: '献上供奉（5金币）',
+        outcomeEn: { text: 'You leave coins and feel the air lighten. Fog -2, -5g', goldDelta: -5, fogDelta: -2 },
+        outcomeZh: { text: '你留下金币，空气似乎变轻了。雾值-2，-5金币', goldDelta: -5, fogDelta: -2 },
       },
       {
-        id: 'burn',
-        labelEn: 'Burn the note',
-        labelZh: '烧掉便签',
-        outcomeEn: { text: 'The smoke curls like a warning. Fog -1', fogDelta: -1 },
-        outcomeZh: { text: '烟雾盘旋，像警告。雾值-1', fogDelta: -1 },
+        id: 'pry',
+        labelEn: 'Pry loose the idol',
+        labelZh: '撬走神像',
+        outcomeEn: { text: 'The stone cracks with a sigh. +14g, fog +1', goldDelta: 14, fogDelta: 1 },
+        outcomeZh: { text: '石头发出一声叹息般的裂响。+14金币，雾值+1', goldDelta: 14, fogDelta: 1 },
       },
     ],
-  }
+  },
 
 ];
 
