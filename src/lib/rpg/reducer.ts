@@ -392,7 +392,7 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
 
         // Bat lifesteal.
         if (enemy.archetypeId === 'bat' || enemy.archetypeId === 'cave_bat') {
-          const heal = Math.max(0, Math.floor(eDmg * 0.35));
+          const heal = Math.max(0, Math.floor(eDmg * (enemy.archetypeId === 'bat' ? 0.35 : 0.3)));
           if (heal > 0) {
             enemy.hp = Math.min(enemy.hpMax, enemy.hp + heal);
             logs = pushLog(logs, `${enemy.name} 吸血，恢复 ${heal} HP。`);
