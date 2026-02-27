@@ -58,6 +58,7 @@ export type WorldState = {
   danger: number;
   fog: number;
   chapter: number;
+  unlockedMaps?: Partial<Record<MapId, boolean>>;
   pendingBattleSeed?: number;
 };
 

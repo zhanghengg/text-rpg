@@ -34,6 +34,7 @@ export function newGame(name: string, job: Player['job']): Player {
       danger: 1,
       fog: 0,
       chapter: 1,
+      unlockedMaps: { borderlands: true },
     },
   };
 }

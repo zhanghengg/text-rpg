@@ -91,6 +91,47 @@ export function MapClient(props: { lang: Lang }) {
       },
     };
 
+    // Unlock next map after beating each boss (progress is stored in save).
+    if (node.type === 'boss') {
+      const unlockOrder: Player['world']['mapId'][] = ['borderlands', 'mistwood', 'oldmine', 'riftcorridor'];
+      const ix = Math.max(0, unlockOrder.indexOf(player.world.mapId));
+      const nextMap = unlockOrder[Math.min(unlockOrder.length - 1, ix + 1)];
+      if (nextMap && nextMap !== player.world.mapId) {
+        next.world = {
+          ...next.world,
+          unlockedMaps: {
+            ...(player.world.unlockedMaps ?? { borderlands: true }),
+            [nextMap]: true,
+          },
+        };
+        setToast({
+          kind: 'good',
+          text: lang === 'zh' ? `你已解锁新地图：${MAP_LABEL[lang][nextMap]}` : `New map unlocked: ${MAP_LABEL[lang][nextMap]}`,
+        });
+      }
+    }
+
+    // If player is at boss and chooses to move, automatically switch to the next unlocked map.
+    if (player.world.nodeId === 'boss' && node.id === 'boss') {
+      const unlocked = player.world.unlockedMaps ?? { borderlands: true };
+      const order: Player['world']['mapId'][] = ['borderlands', 'mistwood', 'oldmine', 'riftcorridor'];
+      const curIx = Math.max(0, order.indexOf(player.world.mapId));
+      const target = order.slice(curIx + 1).find((m) => unlocked[m]);
+      if (target) {
+        const next2: Player = {
+          ...next,
+          world: {
+            ...next.world,
+            mapId: target,
+            nodeId: 'camp',
+            fog: 0,
+          },
+        };
+        setPlayer(next2);
+        return;
+      }
+    }
+
     if (node.type === 'event') {
       const ev = rollEvent(player.world.seed + Number(node.id.replace(/\D/g, '') || 0) + next.world.fog, lang);
       setPlayer(next);
@@ -181,6 +222,43 @@ export function MapClient(props: { lang: Lang }) {
           </Link>
         </div>
       </header>
+
+      <section className="mapbar">
+        <div className="mapbarTitle">{lang === 'zh' ? '地图' : 'Maps'}</div>
+        <div className="mapTabs">
+          {(['borderlands', 'mistwood', 'oldmine', 'riftcorridor'] as Player['world']['mapId'][]).map((id) => {
+            const unlocked = player.world.unlockedMaps ?? { borderlands: true };
+            const ok = Boolean(unlocked[id]);
+            const isOn = id === player.world.mapId;
+            return (
+              <button
+                key={id}
+                className={isOn ? 'tab on' : 'tab'}
+                disabled={!ok}
+                onClick={() => {
+                  if (!ok) return;
+                  if (id === player.world.mapId) return;
+                  setToast(null);
+                  setEvent(null);
+                  setPlayer({
+                    ...player,
+                    world: {
+                      ...player.world,
+                      mapId: id,
+                      nodeId: 'camp',
+                      fog: 0,
+                    },
+                  });
+                }}
+                title={ok ? MAP_LABEL[lang][id] : lang === 'zh' ? '未解锁：击败上一张图首领后解锁' : 'Locked: beat the previous boss to unlock'}
+              >
+                <span className="tabName">{MAP_LABEL[lang][id]}</span>
+                {!ok ? <span className="tabLock">{lang === 'zh' ? '未解锁' : 'Locked'}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="grid">
         <div className="panel">
@@ -293,6 +371,68 @@ const css = String.raw`
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+  }
+
+  .mapbar {
+    margin: 12px 0 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    border-radius: 18px;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.22);
+    backdrop-filter: blur(14px);
+    padding: 12px;
+  }
+
+  .mapbarTitle {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: rgba(255,255,255,0.72);
+    margin-bottom: 10px;
+  }
+
+  .mapTabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.18);
+    color: rgba(255,255,255,0.88);
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 900;
+    transition: transform 160ms ease, background 160ms ease, border 160ms ease;
+  }
+
+  .tab:hover { transform: translateY(-1px); background: rgba(255,255,255,0.07); }
+
+  .tab.on {
+    border-color: rgba(112,246,255,0.32);
+    background: rgba(112,246,255,0.10);
+  }
+
+  .tab:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .tabLock {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.62);
+    background: rgba(0,0,0,0.14);
   }
 
   .grid {
