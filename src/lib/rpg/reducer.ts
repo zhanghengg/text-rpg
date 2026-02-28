@@ -339,7 +339,8 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
 
     const merchantGate = region.encounterRate + 0.18;
     const trapGate = merchantGate + region.merchantRate;
-    const miscGate = trapGate + region.trapRate;
+    const wishGate = trapGate + 0.06;
+    const miscGate = wishGate + region.trapRate;
 
     // Mysterious merchant.
     if (roll < trapGate) {
@@ -372,6 +373,75 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
       const gear = rollGear(save.seed + next.x * 31 + next.y * 97 + 8080, slot, save.level + 1, playerElement(save));
       save = { ...save, gold: save.gold - offer.price, inventory: [gear, ...save.inventory] };
       logs = pushLog(logs, `你向神秘商人购买：${gear.name}（-${offer.price}金币）。`);
+      return { save, logs };
+    }
+
+    // Wishing well: region-flavored choices.
+    if (roll < wishGate) {
+      if (save.mapId === 'whispering_forest') {
+        const offer = chance(r, 0.5) ? 'leaf' : 'coin';
+        if (offer === 'leaf') {
+          const hpCost = rngInt(r, 3, 7);
+          const slot = chance(r, 0.5) ? 'weapon' : chance(r, 0.5) ? 'armor' : 'accessory';
+          const gear = rollGear(save.seed + next.x * 71 + next.y * 113 + 7711, slot, save.level + 1, 'wood');
+          save = { ...save, hp: Math.max(1, save.hp - hpCost), inventory: [gear, ...save.inventory] };
+          logs = pushLog(logs, `你在古井边献上树叶，指尖被刺痛（HP -${hpCost}）。井底回响起低语：你得到 ${gear.name}。`);
+          return { save, logs };
+        }
+
+        const goldCost = rngInt(r, 10, 18);
+        if (save.gold < goldCost) {
+          logs = pushLog(logs, `你在古井边摸出几枚硬币，但不够（需要 ${goldCost} 金币）。`);
+          return { save, logs };
+        }
+
+        const inv = [...save.inventory];
+        const ex = inv.find((x) => x.id === 'potion_small');
+        if (ex && ex.kind === 'potion') ex.qty = (ex.qty ?? 1) + 1;
+        else inv.push({ id: 'potion_small', name: '小型血瓶', kind: 'potion', qty: 1 });
+        save = { ...save, gold: save.gold - goldCost, inventory: inv };
+        logs = pushLog(logs, `你把硬币抛入古井（-${goldCost}金币）。井水涌出一瓶血瓶。`);
+        return { save, logs };
+      }
+
+      if (save.mapId === 'ember_caverns') {
+        const hpCost = rngInt(r, 6, 12);
+        const ok = chance(r, 0.55);
+        if (!ok) {
+          save = { ...save, hp: Math.max(0, save.hp - hpCost), statuses: pushOrRefreshStatus(save.statuses, { id: 'burn', turns: 2, dmgPerTurn: 4 }) };
+          logs = pushLog(logs, `你在裂缝前许愿，灼热反噬（HP -${hpCost}），并被灼烧（2回合）。`);
+        } else {
+          const mpGain = rngInt(r, 6, 12);
+          save = { ...save, hp: Math.max(1, save.hp - Math.floor(hpCost / 2)), mp: Math.min(save.mpMax, save.mp + mpGain) };
+          logs = pushLog(logs, `你在裂缝前许愿，热浪带来回应（HP -${Math.floor(hpCost / 2)}，MP +${mpGain}）。`);
+        }
+
+        if (save.hp <= 0) {
+          save = recalcVitals({ ...save, mode: 'CAMP', mapId: null, pos: { x: 0, y: 0 }, gold: Math.max(0, save.gold - 10) });
+          logs = pushLog(logs, '你在热浪中倒下，被人拖回营地。你损失了一些金币。');
+        }
+
+        return { save, logs };
+      }
+
+      // Breeze plains default.
+      const goldCost = rngInt(r, 6, 12);
+      if (save.gold < goldCost) {
+        logs = pushLog(logs, `你在泉水边许愿，但金币不够（需要 ${goldCost} 金币）。`);
+        return { save, logs };
+      }
+
+      const ok = chance(r, 0.5);
+      if (ok) {
+        const heal = rngInt(r, 10, 18);
+        save = { ...save, gold: save.gold - goldCost, hp: Math.min(save.hpMax, save.hp + heal) };
+        logs = pushLog(logs, `你投下 ${goldCost} 金币，泉水泛起微光：HP +${heal}。`);
+      } else {
+        const slot = chance(r, 0.5) ? 'accessory' : chance(r, 0.5) ? 'weapon' : 'armor';
+        const gear = rollGear(save.seed + next.x * 53 + next.y * 89 + 5309, slot, save.level, 'wind');
+        save = { ...save, gold: save.gold - goldCost, inventory: [gear, ...save.inventory] };
+        logs = pushLog(logs, `你投下 ${goldCost} 金币，泉水吐出一件被泡软的包裹：${gear.name}。`);
+      }
       return { save, logs };
     }
 
