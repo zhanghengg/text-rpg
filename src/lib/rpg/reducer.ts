@@ -7,7 +7,7 @@ import { rollGear } from './gear';
 import { applyDotToPlayer, expToNext, makeEnemy, pushOrRefreshStatus, recalcVitals } from './rules';
 import { SHOP_STOCK, sellPrice } from './shop';
 
-import { computePlayerStats, enemyAttackDamage, playerAttackDamage, playerElement } from './combat';
+import { computePlayerStats, enemyAttackDamage, playerAttackDamage, playerElement, rollHit } from './combat';
 
 function logId(t: number) {
   return `${t}_${Math.random().toString(16).slice(2)}`;
@@ -418,18 +418,28 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
 
     const enemy = { ...combat.enemy };
 
-    // Player attack.
+    // Player attack: hit/crit.
     const ps = computePlayerStats(save);
-    const dmg = playerAttackDamage(save, enemy);
-    enemy.hp = Math.max(0, enemy.hp - dmg);
+    const hitSeed = save.seed + combat.turn * 911 + save.pos.x * 31 + save.pos.y * 97 + enemy.level * 17;
+    const hit = rollHit(hitSeed, save, enemy);
 
-    // Lifesteal on player hit.
-    if (ps.lifestealPct > 0) {
-      const heal = Math.max(0, Math.floor((dmg * ps.lifestealPct) / 100));
-      if (heal > 0) save = { ...save, hp: Math.min(save.hpMax, save.hp + heal) };
-      logs = pushLog(logs, `你攻击 ${enemy.name}，造成 ${dmg} 点伤害（吸血 +${Math.max(0, Math.floor((dmg * ps.lifestealPct) / 100))}）。`);
+    if (!hit.hit) {
+      logs = pushLog(logs, `你出手攻击 ${enemy.name}，但被闪开了（命中 ${(hit.hitChance * 100).toFixed(0)}%）。`);
     } else {
-      logs = pushLog(logs, `你攻击 ${enemy.name}，造成 ${dmg} 点伤害。`);
+      const dmg = playerAttackDamage(save, enemy, { crit: hit.crit });
+      enemy.hp = Math.max(0, enemy.hp - dmg);
+
+      // Lifesteal on player hit.
+      if (ps.lifestealPct > 0) {
+        const heal = Math.max(0, Math.floor((dmg * ps.lifestealPct) / 100));
+        if (heal > 0) save = { ...save, hp: Math.min(save.hpMax, save.hp + heal) };
+        logs = pushLog(
+          logs,
+          `你攻击 ${enemy.name}，造成 ${dmg} 点伤害${hit.crit ? '（暴击）' : ''}（吸血 +${Math.max(0, Math.floor((dmg * ps.lifestealPct) / 100))}）。`,
+        );
+      } else {
+        logs = pushLog(logs, `你攻击 ${enemy.name}，造成 ${dmg} 点伤害${hit.crit ? '（暴击）' : ''}。`);
+      }
     }
 
     if (enemy.hp <= 0) {
