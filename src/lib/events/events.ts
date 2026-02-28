@@ -353,31 +353,56 @@ const EVENT_POOL: EventTpl[] = [
     ],
   },
 
-
+  // New: region-specific events (backstop)
   {
-    id: 'ev_auto_202602271838',
-    mapId: 'any',
-    titleEn: 'A Note Written in Ash',
-    titleZh: '灰烬写下的便签',
-    bodyEn: 'Someone left a message on stone. The fog tries to erase it as you read.',
-    bodyZh: '有人在石头上留了字。你阅读时，迷雾试图把它擦掉。',
+    id: 'ev_border_wishing_stone',
+    mapId: 'borderlands',
+    titleEn: 'A Wishing Stone',
+    titleZh: '许愿石',
+    bodyEn: 'A smooth stone sits in the grass. A shallow groove suggests many coins have tried their luck.',
+    bodyZh: '草地里有一块光滑的石头，上面有一道浅浅的凹槽，像是无数枚硬币试过运气。',
     options: [
       {
-        id: 'pocket',
-        labelEn: 'Pocket the charcoal',
-        labelZh: '收走木炭',
-        outcomeEn: { text: 'You keep the charcoal. It still feels warm. +6g', goldDelta: 6 },
-        outcomeZh: { text: '你把木炭收起来，它仍带余温。+6金币', goldDelta: 6 },
+        id: 'pay',
+        labelEn: 'Pay 6g and wish',
+        labelZh: '投6金币许愿',
+        outcomeEn: { text: 'The stone feels warm. You feel steadier. -6g, +6 HP', goldDelta: -6, hpDelta: 6 },
+        outcomeZh: { text: '石头微微发热，你的心也稳了一些。-6金币，生命+6', goldDelta: -6, hpDelta: 6 },
       },
       {
-        id: 'burn',
-        labelEn: 'Burn the note',
-        labelZh: '烧掉便签',
-        outcomeEn: { text: 'The smoke curls like a warning. Fog -1', fogDelta: -1 },
-        outcomeZh: { text: '烟雾盘旋，像警告。雾值-1', fogDelta: -1 },
+        id: 'pry',
+        labelEn: 'Pry the groove (risky)',
+        labelZh: '撬凹槽（有风险）',
+        outcomeEn: { text: 'A sharp edge bites your finger. +10g, -5 HP', goldDelta: 10, hpDelta: -5 },
+        outcomeZh: { text: '石头边缘割破手指。+10金币，生命-5', goldDelta: 10, hpDelta: -5 },
       },
     ],
-  }
+  },
+  {
+    id: 'ev_mist_hunter_cache',
+    mapId: 'mistwood',
+    titleEn: "Hunter's Cache",
+    titleZh: '猎人藏匿点',
+    bodyEn: 'You spot a mark carved into bark: a hunter sign. Something is buried nearby.',
+    bodyZh: '你在树皮上看到一道刻痕：猎人的暗号。附近似乎埋着什么。',
+    options: [
+      {
+        id: 'dig',
+        labelEn: 'Dig it up',
+        labelZh: '挖出来',
+        outcomeEn: { text: 'You find a wrapped bundle. +14g, fog +1', goldDelta: 14, fogDelta: 1 },
+        outcomeZh: { text: '你挖出一包用布裹好的东西。+14金币，雾值+1', goldDelta: 14, fogDelta: 1 },
+      },
+      {
+        id: 'leave',
+        labelEn: 'Leave the sign alone',
+        labelZh: '别动暗号',
+        outcomeEn: { text: 'Respect earns quiet. Fog -1', fogDelta: -1 },
+        outcomeZh: { text: '尊重换来安静。雾值-1', fogDelta: -1 },
+      },
+    ],
+  },
+
 
 ];
 

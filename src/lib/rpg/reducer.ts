@@ -734,3 +734,4 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
 function isGear(it: RpgItem): it is Extract<RpgItem, { kind: 'gear' }> {
   return it.kind === 'gear';
 }
+
