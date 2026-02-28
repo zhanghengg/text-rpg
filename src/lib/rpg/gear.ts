@@ -37,6 +37,11 @@ const AFFIX_POOL: GearAffix[] = [
   { id: 'agi', nameZh: '疾步', value: 2 },
   { id: 'lifesteal', nameZh: '噬血', value: 3 },
   { id: 'thorns', nameZh: '棘甲', value: 2 },
+
+  { id: 'con', nameZh: '磐石', value: 2 },
+  { id: 'int', nameZh: '灵感', value: 2 },
+  { id: 'lifesteal', nameZh: '虹吸', value: 4 },
+  { id: 'thorns', nameZh: '尖刺', value: 3 },
 ];
 
 export function rollRarity(r: () => number): Rarity {

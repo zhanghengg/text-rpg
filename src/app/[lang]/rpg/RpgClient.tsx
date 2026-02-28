@@ -21,6 +21,29 @@ function fmtJobZh(jobId: string) {
   return jobId;
 }
 
+function rarityZh(r: string) {
+  if (r === 'common') return '白';
+  if (r === 'uncommon') return '绿';
+  if (r === 'rare') return '蓝';
+  if (r === 'epic') return '紫';
+  return r;
+}
+
+function elementZh(e: string) {
+  if (e === 'water') return '水';
+  if (e === 'wind') return '风';
+  if (e === 'fire') return '火';
+  if (e === 'wood') return '木';
+  return e;
+}
+
+function slotZh(s: string) {
+  if (s === 'weapon') return '武器';
+  if (s === 'armor') return '护甲';
+  if (s === 'accessory') return '饰品';
+  return s;
+}
+
 export function RpgClient(props: { lang: Lang }) {
   const lang = props.lang;
 
@@ -230,7 +253,7 @@ export function RpgClient(props: { lang: Lang }) {
               </div>
               <div className="muted small">
                 {it.kind === 'gear'
-                  ? `${it.slot} · ${it.rarity} · ${it.element ? `元素:${it.element} · ` : ''}P${it.power} · ${it.affixes.map((a) => `${a.nameZh}+${a.value}`).join(' ') || '无词缀'}`
+                  ? `${slotZh(it.slot)} · ${rarityZh(it.rarity)} · ${it.element ? `元素:${elementZh(it.element)} · ` : ''}P${it.power} · ${it.affixes.map((a) => `${a.nameZh}+${a.value}`).join(' ') || '无词缀'}`
                   : it.kind}
               </div>
               {save.mode === 'SHOP' ? (
