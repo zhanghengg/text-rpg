@@ -295,13 +295,31 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
     if (poi?.id === 'lava_anvil') {
       const key = `poi_${save.mapId}_lava_anvil_used`;
       const used = save.inventory.some((x) => x.id === key);
-      if (!used) {
-        const g = rngInt(mulberry32(save.seed + next.x * 31 + next.y * 97), 12, 22);
-        save = { ...save, gold: save.gold + g, inventory: [...save.inventory, { id: key, name: '铁砧印记', kind: 'flag' }] };
-        logs = pushLog(logs, `熔岩铁砧的火光映照你的武器。你临时强化并找到战利品：+${g}金币（升级系统待实现，仅可触发一次）。`);
-      } else {
+
+      if (used) {
         logs = pushLog(logs, '熔岩铁砧已经冷却。');
+        return { save, logs };
       }
+
+      // One-time upgrade: improve equipped weapon/armor/accessory by +1 power.
+      // Picks the best available slot (weapon > armor > accessory) for clarity.
+      const slot = save.equipment.weapon ? 'weapon' : save.equipment.armor ? 'armor' : save.equipment.accessory ? 'accessory' : null;
+      if (!slot) {
+        save = { ...save, inventory: [...save.inventory, { id: key, name: '铁砧印记', kind: 'flag' }] };
+        logs = pushLog(logs, '你靠近熔岩铁砧，但身上没有可升级的装备（仍消耗一次机会）。');
+        return { save, logs };
+      }
+
+      const prev = save.equipment[slot]!;
+      const nextGear = { ...prev, power: prev.power + 1 };
+
+      save = recalcVitals({
+        ...save,
+        equipment: { ...save.equipment, [slot]: nextGear },
+        inventory: [...save.inventory, { id: key, name: '铁砧印记', kind: 'flag' }],
+      });
+
+      logs = pushLog(logs, `熔岩铁砧轰鸣作响：${prev.name} 被强化（战力 +1）。`);
       return { save, logs };
     }
 
