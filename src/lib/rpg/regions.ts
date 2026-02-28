@@ -57,7 +57,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     trapRate: 0.14,
     merchantRate: 0.08,
     monsterPool: {
-      normal: ['goblin', 'bat'],
+      normal: ['goblin', 'bat', 'wind_hawk'],
       elite: ['goblin_brute', 'forest_spider'],
       boss: ['spider_queen'],
     },
@@ -73,7 +73,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     trapRate: 0.18,
     merchantRate: 0.05,
     monsterPool: {
-      normal: ['cave_bat', 'ember_slime'],
+      normal: ['cave_bat', 'ember_slime', 'ember_salamander'],
       elite: ['ember_golem'],
       boss: ['magma_wyrm'],
     },

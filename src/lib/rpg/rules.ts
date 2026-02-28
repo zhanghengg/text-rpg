@@ -40,7 +40,8 @@ export type MonsterDef = {
     | { id: 'slime_split' }
     | { id: 'bat_lifesteal'; ratio: number }
     | { id: 'goblin_heavy_strike'; windupTurns: 1; ratio: number }
-    | { id: 'spider_poison_dot'; turns: number; pctMaxHpPerTurn: number };
+    | { id: 'spider_poison_dot'; turns: number; pctMaxHpPerTurn: number }
+    | { id: 'ember_burn_dot'; turns: number; dmgPerTurnBase: number };
 };
 
 export const MONSTERS: Record<MonsterArchetypeId, MonsterDef> = {
@@ -196,6 +197,34 @@ export const MONSTERS: Record<MonsterArchetypeId, MonsterDef> = {
     atkPerLevel: 3,
     defBase: 2,
     defPerLevel: 1,
+  },
+
+  wind_hawk: {
+    id: 'wind_hawk',
+    nameZh: '疾风隼',
+    tier: 'normal',
+    element: 'wind',
+    hpBase: 13,
+    hpPerLevel: 8,
+    atkBase: 5,
+    atkPerLevel: 2,
+    defBase: 0,
+    defPerLevel: 1,
+    skill: { id: 'bat_lifesteal', ratio: 0.22 },
+  },
+
+  ember_salamander: {
+    id: 'ember_salamander',
+    nameZh: '余烬蝾螈',
+    tier: 'elite',
+    element: 'fire',
+    hpBase: 20,
+    hpPerLevel: 11,
+    atkBase: 6,
+    atkPerLevel: 3,
+    defBase: 1,
+    defPerLevel: 2,
+    skill: { id: 'ember_burn_dot', turns: 3, dmgPerTurnBase: 3 },
   },
 };
 

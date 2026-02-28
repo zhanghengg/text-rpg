@@ -36,7 +36,9 @@ export type MonsterArchetypeId =
   | 'cave_bat'
   | 'ember_slime'
   | 'ember_golem'
-  | 'magma_wyrm';
+  | 'magma_wyrm'
+  | 'wind_hawk'
+  | 'ember_salamander';
 
 export type StatusId = 'poison' | 'bleed' | 'stun' | 'burn';
 

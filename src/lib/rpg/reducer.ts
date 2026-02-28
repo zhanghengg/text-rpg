@@ -577,8 +577,9 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
         logs = pushLog(logs, `${enemy.name} 攻击，造成 ${eDmg} 点伤害。`);
 
         // Bat lifesteal.
-        if (enemy.archetypeId === 'bat' || enemy.archetypeId === 'cave_bat') {
-          const heal = Math.max(0, Math.floor(eDmg * (enemy.archetypeId === 'bat' ? 0.35 : 0.3)));
+        if (enemy.archetypeId === 'bat' || enemy.archetypeId === 'cave_bat' || enemy.archetypeId === 'wind_hawk') {
+          const ratio = enemy.archetypeId === 'bat' ? 0.35 : enemy.archetypeId === 'cave_bat' ? 0.3 : 0.22;
+          const heal = Math.max(0, Math.floor(eDmg * ratio));
           if (heal > 0) {
             enemy.hp = Math.min(enemy.hpMax, enemy.hp + heal);
             logs = pushLog(logs, `${enemy.name} 吸血，恢复 ${heal} HP。`);
@@ -591,10 +592,22 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
           logs = pushLog(logs, '毒牙刺入皮肤：你中毒了（每回合扣最大HP 5%）。');
         }
 
-        // Ember slime/golem burns.
-        if (enemy.archetypeId === 'ember_slime' || enemy.archetypeId === 'ember_golem' || enemy.archetypeId === 'magma_wyrm') {
-          const turns = enemy.archetypeId === 'magma_wyrm' ? 3 : 2;
-          const dmgPerTurn = enemy.archetypeId === 'ember_golem' ? 5 : enemy.archetypeId === 'magma_wyrm' ? 7 : 4;
+        // Ember burns.
+        if (
+          enemy.archetypeId === 'ember_slime' ||
+          enemy.archetypeId === 'ember_golem' ||
+          enemy.archetypeId === 'magma_wyrm' ||
+          enemy.archetypeId === 'ember_salamander'
+        ) {
+          const turns = enemy.archetypeId === 'magma_wyrm' ? 3 : enemy.archetypeId === 'ember_salamander' ? 3 : 2;
+          const dmgPerTurn =
+            enemy.archetypeId === 'ember_golem'
+              ? 5
+              : enemy.archetypeId === 'magma_wyrm'
+                ? 7
+                : enemy.archetypeId === 'ember_salamander'
+                  ? 4
+                  : 4;
           save = { ...save, statuses: pushOrRefreshStatus(save.statuses, { id: 'burn', turns, dmgPerTurn }) };
           logs = pushLog(logs, `炽热的余烬粘在你身上：你被灼烧了（${turns}回合）。`);
         }
