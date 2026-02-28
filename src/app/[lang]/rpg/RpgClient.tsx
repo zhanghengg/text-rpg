@@ -140,8 +140,11 @@ export function RpgClient(props: { lang: Lang }) {
         <button className="btn" onClick={() => dispatch({ type: 'COMBAT_ATTACK' })}>
           普通攻击
         </button>
-        <button className="btn" onClick={() => dispatch({ type: 'USE_POTION' })}>
+        <button className="btn" onClick={() => dispatch({ type: 'USE_POTION', potionId: 'potion_small' })}>
           使用血瓶
+        </button>
+        <button className="btn" onClick={() => dispatch({ type: 'USE_POTION', potionId: 'potion_mana' })}>
+          使用蓝瓶
         </button>
         <button className="btn" onClick={() => dispatch({ type: 'COMBAT_ESCAPE' })}>
           逃跑
@@ -181,11 +184,38 @@ export function RpgClient(props: { lang: Lang }) {
         <aside className="inv">
           <div className="h">装备</div>
           <div className="muted small">
-            武器：{save.equipment.weapon?.name ?? '无'}
+            武器：{save.equipment.weapon ? (
+              <>
+                {save.equipment.weapon.name}{' '}
+                <button className="mini" onClick={() => dispatch({ type: 'UNEQUIP_GEAR', slot: 'weapon' })}>
+                  卸下
+                </button>
+              </>
+            ) : (
+              '无'
+            )}
             <br />
-            护甲：{save.equipment.armor?.name ?? '无'}
+            护甲：{save.equipment.armor ? (
+              <>
+                {save.equipment.armor.name}{' '}
+                <button className="mini" onClick={() => dispatch({ type: 'UNEQUIP_GEAR', slot: 'armor' })}>
+                  卸下
+                </button>
+              </>
+            ) : (
+              '无'
+            )}
             <br />
-            饰品：{save.equipment.accessory?.name ?? '无'}
+            饰品：{save.equipment.accessory ? (
+              <>
+                {save.equipment.accessory.name}{' '}
+                <button className="mini" onClick={() => dispatch({ type: 'UNEQUIP_GEAR', slot: 'accessory' })}>
+                  卸下
+                </button>
+              </>
+            ) : (
+              '无'
+            )}
           </div>
 
           <div className="hr" />
@@ -198,7 +228,11 @@ export function RpgClient(props: { lang: Lang }) {
                 <div className="strong">{it.name}</div>
                 <div className="muted">{'qty' in it && it.qty ? `x${it.qty}` : ''}</div>
               </div>
-              <div className="muted small">{it.kind === 'gear' ? `${it.slot} · ${it.rarity} · P${it.power}` : it.kind}</div>
+              <div className="muted small">
+                {it.kind === 'gear'
+                  ? `${it.slot} · ${it.rarity} · P${it.power} · ${it.affixes.map((a) => `${a.nameZh}+${a.value}`).join(' ') || '无词缀'}`
+                  : it.kind}
+              </div>
               {save.mode === 'SHOP' ? (
                 <button className="mini" onClick={() => dispatch({ type: 'SHOP_SELL', itemId: it.id })}>
                   出售

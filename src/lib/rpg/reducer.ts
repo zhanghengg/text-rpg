@@ -583,22 +583,40 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
   }
 
   if (action.type === 'USE_POTION') {
-    const it = save.inventory.find((x) => x.id === 'potion_small');
-    if (!it || it.kind !== 'potion' || !it.qty) {
-      return { save, logs: pushLog(logs, '你没有血瓶。') };
+    const pid = action.potionId ?? 'potion_small';
+    const it = save.inventory.find((x) => x.kind === 'potion' && x.id === pid);
+
+    if (!it || it.kind !== 'potion' || !it.qty || it.qty <= 0) {
+      return { save, logs: pushLog(logs, pid === 'potion_mana' ? '你没有蓝瓶。' : '你没有血瓶。') };
     }
+
+    if (pid === 'potion_mana') {
+      if (save.mp >= save.mpMax) {
+        return { save, logs: pushLog(logs, '你现在不需要用蓝瓶。') };
+      }
+      const heal = 18;
+      save = { ...save, mp: Math.min(save.mpMax, save.mp + heal) };
+      it.qty -= 1;
+      save = {
+        ...save,
+        inventory: save.inventory.filter((x) => x.kind !== 'potion' || x.qty === undefined || x.qty > 0),
+      };
+      logs = pushLog(logs, `你使用小型蓝瓶，恢复 ${heal} MP。`);
+      return { save, logs };
+    }
+
+    const heal = pid === 'potion_big' ? 45 : 18;
     if (save.hp >= save.hpMax) {
       return { save, logs: pushLog(logs, '你现在不需要用血瓶。') };
     }
 
-    const heal = 18;
     save = { ...save, hp: Math.min(save.hpMax, save.hp + heal) };
     it.qty -= 1;
     save = {
       ...save,
       inventory: save.inventory.filter((x) => x.kind !== 'potion' || x.qty === undefined || x.qty > 0),
     };
-    logs = pushLog(logs, `你使用小型血瓶，恢复 ${heal} HP。`);
+    logs = pushLog(logs, `你使用${pid === 'potion_big' ? '中型' : '小型'}血瓶，恢复 ${heal} HP。`);
     return { save, logs };
   }
 

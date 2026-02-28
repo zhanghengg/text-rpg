@@ -148,6 +148,6 @@ export type Action =
   | { type: 'MOVE'; dir: 'N' | 'S' | 'W' | 'E' }
   | { type: 'COMBAT_ATTACK' }
   | { type: 'COMBAT_ESCAPE' }
-  | { type: 'USE_POTION' }
+  | { type: 'USE_POTION'; potionId?: 'potion_small' | 'potion_big' | 'potion_mana' }
   | { type: 'EQUIP_GEAR'; itemId: string }
   | { type: 'UNEQUIP_GEAR'; slot: GearSlot };
