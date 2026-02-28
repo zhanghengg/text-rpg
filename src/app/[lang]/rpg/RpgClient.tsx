@@ -230,7 +230,7 @@ export function RpgClient(props: { lang: Lang }) {
               </div>
               <div className="muted small">
                 {it.kind === 'gear'
-                  ? `${it.slot} · ${it.rarity} · P${it.power} · ${it.affixes.map((a) => `${a.nameZh}+${a.value}`).join(' ') || '无词缀'}`
+                  ? `${it.slot} · ${it.rarity} · ${it.element ? `元素:${it.element} · ` : ''}P${it.power} · ${it.affixes.map((a) => `${a.nameZh}+${a.value}`).join(' ') || '无词缀'}`
                   : it.kind}
               </div>
               {save.mode === 'SHOP' ? (
