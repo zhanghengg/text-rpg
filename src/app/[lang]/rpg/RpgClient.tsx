@@ -29,6 +29,13 @@ function rarityZh(r: string) {
   return r;
 }
 
+function rarityColor(r: string) {
+  if (r === 'uncommon') return '#43d18c';
+  if (r === 'rare') return '#4aa6ff';
+  if (r === 'epic') return '#d082ff';
+  return 'rgba(255,255,255,0.78)';
+}
+
 function elementZh(e: string) {
   if (e === 'water') return '水';
   if (e === 'wind') return '风';
@@ -252,9 +259,23 @@ export function RpgClient(props: { lang: Lang }) {
                 <div className="muted">{'qty' in it && it.qty ? `x${it.qty}` : ''}</div>
               </div>
               <div className="muted small">
-                {it.kind === 'gear'
-                  ? `${slotZh(it.slot)} · ${rarityZh(it.rarity)} · ${it.element ? `元素:${elementZh(it.element)} · ` : ''}P${it.power} · ${it.affixes.map((a) => `${a.nameZh}+${a.value}`).join(' ') || '无词缀'}`
-                  : it.kind}
+                {it.kind === 'gear' ? (
+                  <>
+                    <span className="tag" style={{ color: rarityColor(it.rarity) }}>
+                      {rarityZh(it.rarity)}
+                    </span>
+                    <span className="tag">{slotZh(it.slot)}</span>
+                    {it.element ? <span className="tag">元素 {elementZh(it.element)}</span> : null}
+                    <span className="tag">战力 P{it.power}</span>
+                    <span className="aff">
+                      {it.affixes.length
+                        ? it.affixes.map((a) => `${a.nameZh}+${a.value}`).join(' · ')
+                        : '无词缀'}
+                    </span>
+                  </>
+                ) : (
+                  it.kind
+                )}
               </div>
               {save.mode === 'SHOP' ? (
                 <button className="mini" onClick={() => dispatch({ type: 'SHOP_SELL', itemId: it.id })}>
@@ -411,6 +432,28 @@ const css = String.raw`
   .small { font-size: 12px; }
 
   .hr { height: 1px; background: rgba(255,255,255,0.10); margin: 12px 0; }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.24);
+    margin-right: 6px;
+    margin-top: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .aff {
+    display: inline-block;
+    margin-top: 6px;
+    color: rgba(255,255,255,0.70);
+  }
 
   .actions {
     margin-top: 12px;
