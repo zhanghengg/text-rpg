@@ -19,9 +19,12 @@ export function rollHit(seed: number, save: RpgSave, enemy: CombatEnemy): HitRol
   const ps = computePlayerStats(save);
 
   // Hit is mostly AGI-driven; higher-level enemies are harder to connect with.
+  // Formula doc (lightweight):
+  // - hitChance = clamp01(0.72 + AGI*0.02 - enemyLevel*0.015)
   const hitChance = clamp01(0.72 + ps.agi * 0.02 - enemy.level * 0.015);
 
   // Crit is also AGI-driven; small bonus when you have element advantage.
+  // - critChance = clamp01(0.05 + AGI*0.01 + (elemAdv ? 0.03 : 0))
   const mult = elementMultiplier(playerElement(save), enemy.element);
   const critChance = clamp01(0.05 + ps.agi * 0.01 + (mult > 1 ? 0.03 : 0));
 
