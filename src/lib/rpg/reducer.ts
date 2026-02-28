@@ -446,8 +446,10 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
         drops.push(gear);
 
         // Spider Nest is explicitly "high risk / high reward": guaranteed extra drop.
+        // Use a stable roll (avoid reusing the same RNG state after dropRoll decisions).
         if (save.mapId === 'whispering_forest' && save.pos.x === 7 && save.pos.y === 7) {
-          const slot2 = r() < 0.5 ? 'accessory' : r() < 0.5 ? 'weapon' : 'armor';
+          const rr = mulberry32(save.seed + enemy.level * 2003 + save.pos.x * 131 + save.pos.y * 197 + 77);
+          const slot2 = rr() < 0.34 ? 'accessory' : rr() < 0.67 ? 'weapon' : 'armor';
           const gear2 = rollGear(save.seed + enemy.level * 1999 + save.pos.x * 131 + save.pos.y * 197 + 77, slot2, save.level + 1, enemy.element);
           drops.push(gear2);
           logs = pushLog(logs, '蜘蛛巢穴的战利品格外丰厚……你又摸到一件额外掉落。');
