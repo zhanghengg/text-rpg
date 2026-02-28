@@ -38,7 +38,7 @@ export type MonsterArchetypeId =
   | 'ember_golem'
   | 'magma_wyrm';
 
-export type StatusId = 'poison' | 'bleed' | 'stun';
+export type StatusId = 'poison' | 'bleed' | 'stun' | 'burn';
 
 export type CombatStatus =
   | {
@@ -48,6 +48,11 @@ export type CombatStatus =
     }
   | {
       id: 'bleed';
+      turns: number;
+      dmgPerTurn: number;
+    }
+  | {
+      id: 'burn';
       turns: number;
       dmgPerTurn: number;
     }

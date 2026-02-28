@@ -265,6 +265,7 @@ export function makeEnemy(mapId: string, seed: number, playerLevel: number): Com
 export function applyDotToPlayer(save: RpgSave, logs: string[]): { save: RpgSave; logs: string[] } {
   const poison = save.statuses.find((x) => x.id === 'poison');
   const bleed = save.statuses.find((x) => x.id === 'bleed');
+  const burn = save.statuses.find((x) => x.id === 'burn');
 
   // Poison ticks.
   if (poison) {
@@ -298,6 +299,22 @@ export function applyDotToPlayer(save: RpgSave, logs: string[]): { save: RpgSave
     save = { ...save, hp: nextHp, statuses: nextStatuses };
   }
 
+  // Burn ticks.
+  if (burn) {
+    const dmg = Math.max(1, burn.dmgPerTurn);
+    const nextHp = Math.max(0, save.hp - dmg);
+    const nextTurns = burn.turns - 1;
+
+    logs.push(`灼烧发作，你失去 ${dmg} HP。`);
+
+    const nextStatuses =
+      nextTurns > 0
+        ? [{ ...burn, turns: nextTurns }, ...save.statuses.filter((x) => x.id !== 'burn')]
+        : save.statuses.filter((x) => x.id !== 'burn');
+
+    save = { ...save, hp: nextHp, statuses: nextStatuses };
+  }
+
   return { save, logs };
 }
 
@@ -312,6 +329,7 @@ export function pushOrRefreshStatus(
 export function statusNameZh(id: StatusId): string {
   if (id === 'poison') return '中毒';
   if (id === 'bleed') return '流血';
+  if (id === 'burn') return '灼烧';
   if (id === 'stun') return '眩晕';
   return id;
 }

@@ -521,6 +521,14 @@ export function step(rt: RpgRuntime, action: Action): RpgRuntime {
           logs = pushLog(logs, '毒牙刺入皮肤：你中毒了（每回合扣最大HP 5%）。');
         }
 
+        // Ember slime/golem burns.
+        if (enemy.archetypeId === 'ember_slime' || enemy.archetypeId === 'ember_golem' || enemy.archetypeId === 'magma_wyrm') {
+          const turns = enemy.archetypeId === 'magma_wyrm' ? 3 : 2;
+          const dmgPerTurn = enemy.archetypeId === 'ember_golem' ? 5 : enemy.archetypeId === 'magma_wyrm' ? 7 : 4;
+          save = { ...save, statuses: pushOrRefreshStatus(save.statuses, { id: 'burn', turns, dmgPerTurn }) };
+          logs = pushLog(logs, `炽热的余烬粘在你身上：你被灼烧了（${turns}回合）。`);
+        }
+
         // Slime split: heal itself a bit (represents splitting).
         if (enemy.archetypeId === 'slime_splitter' || enemy.archetypeId === 'slime_king') {
           const heal = Math.max(1, Math.floor(enemy.hpMax * 0.06));
