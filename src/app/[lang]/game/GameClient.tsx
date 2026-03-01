@@ -281,25 +281,39 @@ function GearView(props: {
           {toast ? <div className="toast">{toast}</div> : null}
 
           <div className="list">
-            {p.inventory.map((it) => (
-              <div key={it.id} className="item">
-                <div className="row">
-                  <div className="strong">{it.name}</div>
-                  <div className="tag">{t.gear.rarity[it.rarity]}</div>
+            {p.inventory.map((it) => {
+              if (it.kind === 'potion') {
+                return (
+                  <div key={it.id} className="item">
+                    <div className="row">
+                      <div className="strong">{it.name}</div>
+                      <div className="tag">x{it.qty}</div>
+                    </div>
+                    <div className="muted small">{props.lang === 'zh' ? '消耗品' : 'Consumable'}</div>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={it.id} className="item">
+                  <div className="row">
+                    <div className="strong">{it.name}</div>
+                    <div className="tag">{t.gear.rarity[it.rarity]}</div>
+                  </div>
+                  <div className="muted small">
+                    {it.slot} · {t.gear.levelReq}{it.levelReq} · {t.gear.statsPrefix}
+                    {Object.entries(it.stats)
+                      .map(([k, v]) => `${k}:${v}`)
+                      .join('  ')}
+                  </div>
+                  <div className="row" style={{ marginTop: 8 }}>
+                    <button className="miniBtn" onClick={() => onEquip(it.id)} disabled={busy}>
+                      {t.gear.equip}
+                    </button>
+                  </div>
                 </div>
-                <div className="muted small">
-                  {it.slot} · {t.gear.levelReq}{it.levelReq} · {t.gear.statsPrefix}
-                  {Object.entries(it.stats)
-                    .map(([k, v]) => `${k}:${v}`)
-                    .join('  ')}
-                </div>
-                <div className="row" style={{ marginTop: 8 }}>
-                  <button className="miniBtn" onClick={() => onEquip(it.id)} disabled={busy}>
-                    {t.gear.equip}
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="muted">{t.gear.next}</div>

@@ -73,9 +73,10 @@ export type WorldState = {
 export type MapId = 'borderlands' | 'mistwood' | 'oldmine' | 'riftcorridor';
 export type NodeId = string;
 
-export type Item = {
+export type GearItem = {
   id: Id;
   name: string;
+  kind?: 'gear';
   slot: GearSlot;
   rarity: Rarity;
   levelReq: number;
@@ -83,6 +84,15 @@ export type Item = {
   price: number;
   tags?: string[];
 };
+
+export type PotionItem = {
+  id: Id;
+  name: string;
+  kind: 'potion';
+  qty: number;
+};
+
+export type Item = GearItem | PotionItem;
 
 export type Enemy = {
   id: Id;

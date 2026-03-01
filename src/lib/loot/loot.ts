@@ -1,4 +1,4 @@
-import type { Item, JobId, Rarity } from '@/lib/types';
+import type { GearItem, JobId, Rarity } from '@/lib/types';
 
 import { mulberry32, pickOne, rngInt } from '@/lib/rng';
 
@@ -10,7 +10,7 @@ const RARITY_W: { r: Rarity; w: number }[] = [
   { r: 'legendary', w: 0 },
 ];
 
-const SLOT_POOL: Item['slot'][] = ['weapon', 'head', 'chest', 'hands', 'legs', 'feet', 'neck', 'ring1'];
+const SLOT_POOL: GearItem['slot'][] = ['weapon', 'head', 'chest', 'hands', 'legs', 'feet', 'neck', 'ring1'];
 
 function rollRarity(r: () => number): Rarity {
   const total = RARITY_W.reduce((a, x) => a + x.w, 0);
@@ -45,7 +45,7 @@ function suffix(r: () => number) {
   return pickOne(r, ['of Sparks', 'of the Wolf', 'of Quiet', 'of Greed', 'of Iron', 'of Old Blood']);
 }
 
-export function rollDrop(seed: number, level: number, job: JobId, lang: 'en' | 'zh' = 'en'): Item {
+export function rollDrop(seed: number, level: number, job: JobId, lang: 'en' | 'zh' = 'en'): GearItem {
   const r = mulberry32(seed);
   const rarity = rollRarity(r);
   const slot = pickOne(r, SLOT_POOL);
@@ -59,7 +59,7 @@ export function rollDrop(seed: number, level: number, job: JobId, lang: 'en' | '
   const def = Math.floor(baseDef * mult);
 
   const statRoll = rngInt(r, 0, 2);
-  const stats: Item['stats'] = {
+  const stats: GearItem['stats'] = {
     ...(atk ? { atk } : null),
     ...(def ? { def } : null),
   };
@@ -92,7 +92,7 @@ export function rollDrop(seed: number, level: number, job: JobId, lang: 'en' | '
     'of Old Blood': '之旧血',
   };
 
-  const slotNameZh: Record<Item['slot'], string> = {
+  const slotNameZh: Record<GearItem['slot'], string> = {
     weapon: '武器',
     offhand: '副手',
     head: '头盔',

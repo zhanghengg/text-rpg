@@ -5,11 +5,13 @@ import { recalcPlayer } from '@/lib/game';
 const RING_SLOTS: GearSlot[] = ['ring1', 'ring2'];
 
 export function canEquip(p: Player, it: Item) {
+  if (it.kind === 'potion') return { ok: false as const, reason: 'kind' as const };
   if (p.level < it.levelReq) return { ok: false as const, reason: 'level' as const };
   return { ok: true as const };
 }
 
 export function equipItem(p: Player, it: Item): { player: Player; replaced?: Item } {
+  if (it.kind === 'potion') return { player: p };
   const baseSlot = it.slot;
 
   let slot: GearSlot = baseSlot;

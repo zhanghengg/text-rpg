@@ -66,8 +66,12 @@ export function MapClient(props: { lang: Lang }) {
     return current.to.map((id) => gen.map.nodes[id]).filter(Boolean);
   }, [gen, current]);
 
-  function applyWorldDelta(next: Player, delta: { gold?: number; hp?: number; fog?: number; campfire?: CampfireBuff | null }) {
-    const hp = Math.max(0, Math.min(next.derived.hpMax, next.hp + (delta.hp ?? 0)));
+  function applyWorldDelta(
+    next: Player,
+    delta: { gold?: number; hp?: number; maxHp?: number; potion?: number; fog?: number; campfire?: CampfireBuff | null },
+  ) {
+    const maxHp = Math.max(1, next.derived.hpMax + (delta.maxHp ?? 0));
+    const hp = Math.max(0, Math.min(maxHp, next.hp + (delta.hp ?? 0)));
     const nextFog = Math.max(0, next.world.fog + (delta.fog ?? 0));
 
     let buffs = next.world.buffs;
@@ -82,10 +86,22 @@ export function MapClient(props: { lang: Lang }) {
       buffs = { ...(buffs ?? {}), campfire: undefined };
     }
 
+    let inv = next.inventory;
+    if (typeof delta.potion === 'number' && delta.potion !== 0) {
+      const base = { id: 'potion_small', name: '小型血瓶', kind: 'potion' as const, qty: 1 };
+      const copy = inv.map((x) => ({ ...x }));
+      const ex = copy.find((x) => x.kind === 'potion' && x.id === base.id);
+      if (ex && ex.kind === 'potion') ex.qty = Math.max(0, (ex.qty ?? 1) + delta.potion);
+      else if (delta.potion > 0) copy.push({ ...base, qty: delta.potion });
+      inv = copy.filter((x) => x.kind !== 'potion' || x.qty === undefined || x.qty > 0);
+    }
+
     return {
       ...next,
       hp,
       gold: next.gold + (delta.gold ?? 0),
+      inventory: inv,
+      derived: { ...next.derived, hpMax: maxHp },
       world: {
         ...next.world,
         fog: nextFog,
@@ -260,6 +276,8 @@ export function MapClient(props: { lang: Lang }) {
     const next = applyWorldDelta(player, {
       gold: opt.outcome.goldDelta,
       hp: opt.outcome.hpDelta,
+      maxHp: opt.outcome.maxHpDelta,
+      potion: opt.outcome.potionDelta,
       fog: opt.outcome.fogDelta,
       campfire,
     });

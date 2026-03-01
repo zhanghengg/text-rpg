@@ -5,6 +5,8 @@ export type EventOutcome = {
   text: string;
   goldDelta?: number;
   hpDelta?: number;
+  maxHpDelta?: number;
+  potionDelta?: number;
   fogDelta?: number;
 };
 
@@ -399,6 +401,38 @@ const EVENT_POOL: EventTpl[] = [
         labelZh: '别动暗号',
         outcomeEn: { text: 'Respect earns quiet. Fog -1', fogDelta: -1 },
         outcomeZh: { text: '尊重换来安静。雾值-1', fogDelta: -1 },
+      },
+    ],
+  },
+  {
+    id: 'ev_mist_hunter_shack',
+    mapId: 'mistwood',
+    titleEn: "Hunter's Shack",
+    titleZh: '猎人小屋',
+    bodyEn:
+      'A mossy hut leans into the trees. The door is tied shut with twine, but a crate sits outside under a plank roof.',
+    bodyZh: '一间长满苔藓的小屋歪在树林里。门被麻绳绑死，但屋外的木棚下放着一只木箱。',
+    options: [
+      {
+        id: 'open',
+        labelEn: 'Open the crate (10g)',
+        labelZh: '开箱（10金币）',
+        outcomeEn: { text: 'You pay for the key and take supplies. -10g, +2 max HP', goldDelta: -10, maxHpDelta: 2 },
+        outcomeZh: { text: '你付钱换来钥匙，带走补给。-10金币，最大生命+2', goldDelta: -10, maxHpDelta: 2 },
+      },
+      {
+        id: 'trade',
+        labelEn: 'Trade: 1 potion for 18g',
+        labelZh: '交易：1药水换18金币',
+        outcomeEn: { text: 'You swap quietly through the crack. +18g, -1 potion', goldDelta: 18, potionDelta: -1 },
+        outcomeZh: { text: '你从门缝里安静交换。+18金币，药水-1', goldDelta: 18, potionDelta: -1 },
+      },
+      {
+        id: 'leave',
+        labelEn: 'Leave it be',
+        labelZh: '离开',
+        outcomeEn: { text: 'You keep the woods undisturbed. Fog -1', fogDelta: -1 },
+        outcomeZh: { text: '你不惊动树林。雾值-1', fogDelta: -1 },
       },
     ],
   },

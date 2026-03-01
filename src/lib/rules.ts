@@ -21,6 +21,7 @@ export function calcDerived(stats: Stats, items: Item[]): Derived {
   const bonus: Partial<Record<keyof Derived, number>> = {};
 
   for (const it of items) {
+    if (it.kind === 'potion') continue;
     for (const [k, v] of Object.entries(it.stats)) {
       const key = k as keyof Derived;
       if (typeof v !== 'number') continue;
