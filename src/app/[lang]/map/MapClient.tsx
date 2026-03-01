@@ -19,6 +19,8 @@ import { rollDrop } from '@/lib/loot/loot';
 
 type Toast = { kind: 'good' | 'bad' | 'info'; text: string };
 
+type CampfireBuff = { untilFog: number; atkPct: number; defPct: number };
+
 function nodeKindLabel(lang: Lang, t: ReturnType<typeof getDict>, type: NodeType) {
   if (lang === 'zh') {
     if (type === 'camp') return '营地';
@@ -64,15 +66,30 @@ export function MapClient(props: { lang: Lang }) {
     return current.to.map((id) => gen.map.nodes[id]).filter(Boolean);
   }, [gen, current]);
 
-  function applyWorldDelta(next: Player, delta: { gold?: number; hp?: number; fog?: number }) {
+  function applyWorldDelta(next: Player, delta: { gold?: number; hp?: number; fog?: number; campfire?: CampfireBuff | null }) {
     const hp = Math.max(0, Math.min(next.derived.hpMax, next.hp + (delta.hp ?? 0)));
+    const nextFog = Math.max(0, next.world.fog + (delta.fog ?? 0));
+
+    let buffs = next.world.buffs;
+    const curCamp = buffs?.campfire;
+    if (curCamp && nextFog >= curCamp.untilFog) {
+      buffs = { ...(buffs ?? {}), campfire: undefined };
+    }
+
+    if (delta.campfire) {
+      buffs = { ...(buffs ?? {}), campfire: delta.campfire };
+    } else if (delta.campfire === null) {
+      buffs = { ...(buffs ?? {}), campfire: undefined };
+    }
+
     return {
       ...next,
       hp,
       gold: next.gold + (delta.gold ?? 0),
       world: {
         ...next.world,
-        fog: Math.max(0, next.world.fog + (delta.fog ?? 0)),
+        fog: nextFog,
+        buffs,
       },
     };
   }
@@ -82,14 +99,17 @@ export function MapClient(props: { lang: Lang }) {
     setToast(null);
     setEvent(null);
 
-    const next: Player = {
-      ...player,
-      world: {
-        ...player.world,
-        nodeId: node.id,
-        fog: Math.max(0, player.world.fog + 1),
+    // Step forward into fog.
+    const next: Player = applyWorldDelta(
+      {
+        ...player,
+        world: {
+          ...player.world,
+          nodeId: node.id,
+        },
       },
-    };
+      { fog: 1 },
+    );
 
     // Unlock next map after beating each boss (progress is stored in save).
     if (node.type === 'boss') {
@@ -130,6 +150,50 @@ export function MapClient(props: { lang: Lang }) {
         setPlayer(next2);
         return;
       }
+    }
+
+    if (node.type === 'camp') {
+      // Campfire: pay gold to get a temporary buff for the next few fog steps.
+      const price = 10;
+      const buff: CampfireBuff = { untilFog: next.world.fog + 4, atkPct: 12, defPct: 8 };
+
+      setPlayer(next);
+      setToast({
+        kind: 'info',
+        text:
+          lang === 'zh'
+            ? `营火旁有一锅热汤（${price}金币）。支付后获得：接下来4点雾值内 攻击+${buff.atkPct}%，防御+${buff.defPct}%。`
+            : `A pot simmers by the campfire (${price}g). Pay to gain: for the next 4 fog steps, ATK +${buff.atkPct}%, DEF +${buff.defPct}%.`,
+      });
+      setEvent({
+        id: `ev_campfire_${next.world.fog}`,
+        title: lang === 'zh' ? '营火' : 'Campfire',
+        body:
+          lang === 'zh'
+            ? '你可以补给、取暖，也可以用金币换一段时间的火光庇护。'
+            : 'You can rest, warm up, or pay coin for a stretch of firelight protection.',
+        options: [
+          {
+            id: 'pay',
+            label: lang === 'zh' ? `支付 ${price}金币` : `Pay ${price}g`,
+            outcome:
+              lang === 'zh'
+                ? { text: `火光落在你肩上：攻击+${buff.atkPct}%，防御+${buff.defPct}%（持续4点雾值）。`, goldDelta: -price }
+                : { text: `Firelight settles on you: ATK +${buff.atkPct}%, DEF +${buff.defPct}% (4 fog steps).`, goldDelta: -price },
+          },
+          {
+            id: 'rest',
+            label: lang === 'zh' ? '休息片刻（+6生命）' : 'Rest (+6 HP)',
+            outcome: lang === 'zh' ? { text: '你坐在火边，呼吸顺了些。生命+6', hpDelta: 6 } : { text: 'You sit by the fire until your breathing smooths out. +6 HP', hpDelta: 6 },
+          },
+          {
+            id: 'leave',
+            label: lang === 'zh' ? '离开' : 'Leave',
+            outcome: lang === 'zh' ? { text: '你把火光留在身后。', fogDelta: 0 } : { text: 'You leave the firelight behind.' },
+          },
+        ],
+      });
+      return;
     }
 
     if (node.type === 'event') {
@@ -182,10 +246,22 @@ export function MapClient(props: { lang: Lang }) {
     const opt = event.options.find((o) => o.id === optionId);
     if (!opt) return;
 
+    // Special: campfire buff purchase.
+    let campfire: CampfireBuff | null | undefined = undefined;
+    if (event.id.startsWith('ev_campfire_') && opt.id === 'pay') {
+      if (player.gold < 10) {
+        setToast({ kind: 'bad', text: lang === 'zh' ? '金币不足。' : 'Not enough gold.' });
+        setEvent(null);
+        return;
+      }
+      campfire = { untilFog: player.world.fog + 4, atkPct: 12, defPct: 8 };
+    }
+
     const next = applyWorldDelta(player, {
       gold: opt.outcome.goldDelta,
       hp: opt.outcome.hpDelta,
       fog: opt.outcome.fogDelta,
+      campfire,
     });
 
     setPlayer(next);

@@ -58,6 +58,10 @@ export function startBattle(seed: number, p: Player): BattleState {
   const r = mulberry32(seed);
   const base = pickOne(r, ENEMIES);
   const level = Math.max(1, Math.min(p.level + rngInt(r, -1, 1), p.level + 2));
+
+  const camp = p.world.buffs?.campfire;
+  const campActive = Boolean(camp && p.world.fog < camp.untilFog);
+
   const enemy: Enemy = {
     ...base,
     id: `${base.id}_${seed}`,
@@ -69,9 +73,17 @@ export function startBattle(seed: number, p: Player): BattleState {
 
   const bt = getBattleText(p.lang === 'zh' ? 'zh' : 'en');
 
-  const log: BattleLogEntry[] = [
-    { t: Date.now(), side: 'system', text: bt.encounter(enemy.name, enemy.level) },
-  ];
+  const log: BattleLogEntry[] = [{ t: Date.now(), side: 'system', text: bt.encounter(enemy.name, enemy.level) }];
+  if (campActive) {
+    log.push({
+      t: Date.now(),
+      side: 'system',
+      text:
+        p.lang === 'zh'
+          ? `营火的余温仍在：本场战斗 攻击+${camp?.atkPct}%，防御+${camp?.defPct}%。`
+          : `The campfire's warmth lingers: this battle ATK +${camp?.atkPct}%, DEF +${camp?.defPct}%.`,
+    });
+  }
 
   return {
     seed,
@@ -110,6 +122,11 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
 
   const bt = getBattleText(p.lang === 'zh' ? 'zh' : 'en');
 
+  const camp = p.world.buffs?.campfire;
+  const campActive = Boolean(camp && p.world.fog < camp.untilFog);
+  const atkMul = campActive ? 1 + (camp?.atkPct ?? 0) / 100 : 1;
+  const defMul = campActive ? 1 + (camp?.defPct ?? 0) / 100 : 1;
+
   const pHit = p.derived.hit;
   const pCrit = p.derived.crit;
 
@@ -135,7 +152,7 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
       log.push({ t: Date.now(), side: 'player', text: bt.miss(p.name) });
     } else {
       const crit = critRoll(r, pCrit);
-      const dmg = damage(p.derived.atk, b.enemy.def);
+      const dmg = damage(Math.floor(p.derived.atk * atkMul), b.enemy.def);
       const dealt = crit ? Math.floor(dmg * 1.6) : dmg;
       enemyHp = Math.max(0, enemyHp - dealt);
       log.push({
@@ -195,7 +212,7 @@ export function stepBattle(p: Player, b: BattleState, action: PlayerAction) {
   if (!enemyHit) {
     log.push({ t: Date.now(), side: 'enemy', text: bt.enemyMiss(b.enemy.name) });
   } else {
-    const dmg = damage(b.enemy.atk, p.derived.def);
+    const dmg = damage(b.enemy.atk, Math.floor(p.derived.def * defMul));
     const reduced = defend ? Math.floor(dmg * 0.55) : dmg;
     playerHp = Math.max(0, playerHp - reduced);
     log.push({

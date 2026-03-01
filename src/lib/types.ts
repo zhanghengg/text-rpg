@@ -60,7 +60,14 @@ export type WorldState = {
   fog: number;
   chapter: number;
   unlockedMaps?: Partial<Record<MapId, boolean>>;
+
+  // If set, clicking the "Game" button will start battle with this seed.
   pendingBattleSeed?: number;
+
+  // Temporary exploration buffs (e.g., campfire).
+  buffs?: {
+    campfire?: { untilFog: number; atkPct: number; defPct: number };
+  };
 };
 
 export type MapId = 'borderlands' | 'mistwood' | 'oldmine' | 'riftcorridor';
